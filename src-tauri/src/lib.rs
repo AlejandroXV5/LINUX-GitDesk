@@ -6,9 +6,12 @@
 
 mod git;
 mod github;
+mod update;
 
 use git::{CommitOptions, FileChange, OpResult, PullRequest, Repo, Snapshot};
 use github::{Account, Repo as GhRepo};
+use tauri::{Emitter, Manager};
+use update::UpdateInfo;
 
 type R<T> = Result<T, String>;
 
@@ -242,6 +245,30 @@ async fn github_repos() -> R<Vec<GhRepo>> {
     github::list_repos()
 }
 
+/// `None` when GitDesk is already up to date with origin/main.
+#[tauri::command]
+async fn app_check_update() -> R<Option<UpdateInfo>> {
+    update::check()
+}
+
+/// Pulls, rebuilds and reinstalls GitDesk (see update.rs). Emits an "update-progress"
+/// event with a line of text after each phase — the update dialog appends them to
+/// its log. Runs on a blocking thread: it shells out to npm/cargo for minutes.
+#[tauri::command]
+async fn app_update(app: tauri::AppHandle) -> R<()> {
+    tauri::async_runtime::spawn_blocking(move || {
+        update::install(|line| { let _ = app.emit("update-progress", line); })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Relaunches the (now updated) binary at the same path and exits this process.
+#[tauri::command]
+fn app_restart(app: tauri::AppHandle) {
+    tauri::process::restart(&app.env());
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -290,7 +317,10 @@ pub fn run() {
             github_account,
             github_sign_in,
             github_sign_out,
-            github_repos
+            github_repos,
+            app_check_update,
+            app_update,
+            app_restart
         ])
         .run(tauri::generate_context!())
         .expect("error while running GitDesk");

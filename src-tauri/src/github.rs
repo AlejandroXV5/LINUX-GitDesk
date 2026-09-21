@@ -55,6 +55,14 @@ impl Credential {
     }
 }
 
+/// The saved github.com token, if git already has one — never prompts. GitDesk's own
+/// repo is private, so the updater needs this to read it (the same credential
+/// Push/Pull already use; the user doesn't need to be "signed in" to GitDesk itself).
+pub(crate) fn token() -> Option<String> {
+    let out = credential("fill", "", false).ok()?;
+    parse_credential(&out).map(|c| c.password)
+}
+
 /// The account git already has a credential for. Never prompts; `None` when signed
 /// out or when GitHub no longer accepts the saved token.
 pub fn current() -> Result<Option<Account>, String> {
@@ -224,7 +232,7 @@ fn image_mime(b: &[u8]) -> &'static str {
 
 /// GET with the system `curl`. The token goes in through stdin (`--config -`) so it
 /// never shows up in the process list. Returns the HTTP status and the body.
-fn http_get(url: &str, token: Option<&str>) -> Result<(u16, Vec<u8>), String> {
+pub(crate) fn http_get(url: &str, token: Option<&str>) -> Result<(u16, Vec<u8>), String> {
     let q = |s: &str| s.replace('\\', "\\\\").replace('"', "\\\"");
     let mut config = format!("url = \"{}\"\n", q(url));
     if let Some(t) = token {

@@ -9,6 +9,7 @@ import { wire } from './ui/events';
 import { renderAll, renderBusy, renderDock, renderOutput } from './ui/render';
 import { DEMO, openRepo } from './ui/session';
 import { loadAccount } from './ui/account';
+import { checkForUpdate } from './ui/update';
 import { S } from './core/settings';
 import { VERSION } from './version';
 import './ui/actions'; // registers the info-bar action runner
@@ -25,6 +26,7 @@ async function boot(){
   renderAll();
   setupAutoFetch();
   loadAccount(); // git credential fill, never prompts — doesn't block opening the repository
+  checkForUpdate();
   if (!inTauri()){ await openRepo(DEMO); return; }
   const { invoke } = await import('@tauri-apps/api/core');
   const fromCli = await invoke<string | null>('startup_repo').catch(() => null);
