@@ -161,7 +161,6 @@ export function dockMoreMenu(): MenuItem[] {
     { label: t('g.newPR'), icon: 'pr', disabled: !curBranch(), action: () => dlgNewPR(curBranch()!) },
     { divider: true },
     { label: t('g.openBrowser'), icon: 'ext', action: () => act.openBrowser(curBranch()) },
-    { label: t('g.settings'), icon: 'gear', action: () => dlgOptions('git') },
     ...(isDemo() ? [{ divider: true }, { label: t('t.simEdit'), icon: 'pencil', action: act.simEdit }, { label: t('t.simPush'), icon: 'cloudUp', action: act.simTeammate }] : [])
   ];
 }

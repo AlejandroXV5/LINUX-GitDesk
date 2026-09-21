@@ -44,7 +44,6 @@ export const act = {
   toggleOutput(){ if (isNarrow()) $('#app').classList.toggle('drawer-output'); else { S.showOutput = !S.showOutput; saveSettings(); } renderLayout(); },
   showDock(){ if (isNarrow()){ $('#app').classList.add('drawer-dock'); $('#app').classList.remove('drawer-sidebar'); } else { S.showDock = true; saveSettings(); } renderLayout(); renderDock(); },
   options: () => dlgOptions(),
-  gitSettings: () => dlgOptions('git'),
   viewAll(){ R.historyRef = null; R.showAll = false; if (isNarrow()) $('#app').classList.remove('drawer-dock'); renderAll(); $('#graphBody').focus(); },
   stageAll: () => doOp('st.working', () => B().stage(P(), [...new Set(R.work.filter(f => !f.staged).map(f => f.path))])),
   unstageAll: () => doOp('st.working', () => B().unstage(P(), [...new Set(R.work.filter(f => f.staged).map(f => f.path))])),

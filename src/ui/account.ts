@@ -7,6 +7,7 @@ import { avClass, hasRepo, initials } from '../core/model';
 import { S, saveSettings, t } from '../core/settings';
 import { $, esc } from '../core/util';
 import { appLog, confirmDlg, dialog, menuAt, toast } from './core';
+import { dlgOptions } from './dialogs';
 import { renderAll } from './render';
 import { B, P, doOp } from './session';
 
@@ -94,6 +95,8 @@ export function accountMenu(anchor: HTMLElement){
     { header: a.name === a.login ? a.login : `${a.name} · ${a.login}` },
     { label: t('acc.profile'), icon: 'ext', action: () => { openUrl(a.url); } },
     { label: t('acc.useIdentity'), icon: 'pencil', checked: usesIdentity(a), action: useIdentity },
+    { divider: true },
+    { label: t('t.options'), icon: 'gear', shortcut: 'Ctrl+,', action: () => dlgOptions() },
     { divider: true },
     { label: t('acc.signOut'), icon: 'exit', action: signOut }
   ], true);
