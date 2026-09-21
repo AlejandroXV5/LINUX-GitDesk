@@ -1,10 +1,12 @@
 // Dialogs: branch/tag creation, delete, compare, pull requests, worktrees,
 // submodules, open/clone/new repository, diff viewer, stash, options, help.
 import { inTauri, pickFolder } from '../backend/tauri';
+import { GitHub, type GhRepo } from '../backend/github';
 import { svg } from '../core/icons';
 import { R, absDate, ancestors, curBranch, hasRepo, headSha, onlyIn, refKind, resolve, type FileChange, type WorkFile } from '../core/model';
 import { S, saveSettings, t, w } from '../core/settings';
 import { $, $$, esc, firstLine, s7 } from '../core/util';
+import { account } from './account';
 import { appLog, dialog, toast, type DialogApi } from './core';
 import { fileRowHtml, renderAll, renderSidebar } from './render';
 import { B, DEMO, P, doOp, isDemo, loadPrs, openRepo } from './session';
@@ -168,19 +170,74 @@ function wireBrowse(d: DialogApi){
   });
 }
 const defaultParent = () => (hasRepo() && !isDemo() ? R.path.slice(0, R.path.lastIndexOf('/')) : '~/src');
+const repoRowHtml = (r: GhRepo, selected: boolean) =>
+  `<div class="wl-row gh-repo" data-repo="${esc(r.fullName)}" tabindex="0" aria-selected="${selected}">${svg('repo')}<span class="n">${esc(r.name)}</span><span class="p">${esc(r.description || r.fullName)}</span>${r.private ? `<span class="st-badge st-draft">${esc(t('dl.private'))}</span>` : ''}</div>`;
+
+/** Clone a repository: pick one from the signed-in GitHub account, or paste a URL. */
 export function dlgClone(){
+  const canGitHub = !!account;
+  let tab: 'gh' | 'url' = canGitHub ? 'gh' : 'url';
+  let repos: GhRepo[] = [];
+  let selected: GhRepo | null = null;
+
+  const tabsHtml = canGitHub
+    ? `<div class="seg" id="clTabs" role="group"><button type="button" data-v="gh" aria-pressed="true">${esc(t('dl.tabGithub'))}</button><button type="button" data-v="url" aria-pressed="false">${esc(t('dl.tabUrl'))}</button></div>`
+    : '';
+  const ghPanel = `<div data-clpanel="gh"${canGitHub ? '' : ' hidden'}>
+    <input class="inp" id="clSearch" placeholder="${esc(t('dl.searchRepos'))}" spellcheck="false" autocomplete="off">
+    <div class="gh-repos" id="clRepos"><div class="hint">${esc(t('st.loading'))}</div></div>
+  </div>`;
+  const urlPanel = `<div data-clpanel="url"${canGitHub ? ' hidden' : ''}>
+    ${field(t('dl.url'), `<input class="inp mono" id="clUrl" placeholder="https://github.com/org/project.git" spellcheck="false">`)}
+  </div>`;
+
   dialog({
-    title: t('dl.clone'),
-    body: field(t('dl.url'), `<input class="inp mono" id="clUrl" placeholder="https://github.com/org/project.git" spellcheck="false">`) + field(t('dl.parent'), folderField('clParent', defaultParent())),
+    title: t('dl.clone'), wide: canGitHub,
+    body: tabsHtml + ghPanel + urlPanel + field(t('dl.parent'), folderField('clParent', defaultParent())),
     actions: [{ label: t('dl.cancel') }, { label: t('dl.cloneBtn'), primary: true, fn: d => {
+      const parent = d.$('#clParent').value.trim().replace(/\/$/, '');
+      const be = inTauri() ? B('/') : B(DEMO);
+      if (canGitHub && tab === 'gh'){
+        if (!selected){ d.$<HTMLElement>('#clRepos').classList.add('invalid'); return false; }
+        runCreate(() => be.clone(selected!.cloneUrl, parent + '/' + selected!.name));
+        return;
+      }
       const u = d.$('#clUrl').value.trim();
       const name = (u.replace(/\.git$/, '').split(/[/:]/).pop() || '').replace(/[^\w.-]/g, '');
       if (!name){ d.$('#clUrl').classList.add('invalid'); return false; }
-      const dest = d.$('#clParent').value.trim().replace(/\/$/, '') + '/' + name;
-      const be = inTauri() ? B('/') : B(DEMO);
+      const dest = parent + '/' + name;
       runCreate(() => be.clone(u, dest));
     } }],
-    onMount: wireBrowse
+    onMount: d => {
+      wireBrowse(d);
+      if (!canGitHub) return;
+      const listEl = d.$<HTMLElement>('#clRepos');
+      const renderList = (filter: string) => {
+        const q = filter.trim().toLowerCase();
+        const shown = q ? repos.filter(r => r.name.toLowerCase().includes(q) || r.fullName.toLowerCase().includes(q)) : repos;
+        listEl.classList.remove('invalid');
+        listEl.innerHTML = shown.length
+          ? shown.map(r => repoRowHtml(r, r === selected)).join('')
+          : `<div class="hint">${esc(q ? t('dl.noRepoMatch', { q: filter }) : t('dl.noRepos'))}</div>`;
+      };
+      GitHub.repos().then(r => {
+        repos = r; selected = repos[0] || null;
+        renderList(d.$<HTMLInputElement>('#clSearch').value);
+      }).catch(e => { listEl.innerHTML = `<div class="hint err">${esc(String((e as Error)?.message ?? e))}</div>`; });
+      d.$('#clSearch').addEventListener('input', e => renderList((e.target as HTMLInputElement).value));
+      listEl.addEventListener('click', e => {
+        const row = (e.target as HTMLElement).closest<HTMLElement>('.gh-repo'); if (!row) return;
+        selected = repos.find(r => r.fullName === row.dataset.repo) || null;
+        listEl.classList.remove('invalid');
+        d.$$('.gh-repo').forEach(x => x.setAttribute('aria-selected', String(x === row)));
+      });
+      d.$<HTMLElement>('#clTabs').addEventListener('click', e => {
+        const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-v]'); if (!b) return;
+        tab = b.dataset.v as 'gh' | 'url';
+        d.$$('#clTabs button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+        d.$$('[data-clpanel]').forEach(p => { p.hidden = p.dataset.clpanel !== tab; });
+      });
+    }
   });
 }
 export function dlgNewRepo(){

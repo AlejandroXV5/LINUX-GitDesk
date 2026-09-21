@@ -314,6 +314,13 @@ kbd{font-family:var(--font-mono);font-size:11px;padding:1px 6px;border:1px solid
 .cmp-list .r{display:flex;gap:8px;white-space:nowrap}
 .cmp-list .r .m{overflow:hidden;text-overflow:ellipsis}
 .cmp-list .r .mono{color:var(--ink-secondary)}
+[data-clpanel]{display:flex;flex-direction:column;gap:8px}
+[data-clpanel][hidden]{display:none}
+.gh-repos{max-height:260px;overflow-y:auto;border:1px solid var(--border-subtle);border-radius:var(--radius-sm)}
+.gh-repos.invalid{border-color:var(--status-deleted)}
+.gh-repos .hint{padding:10px 12px}
+.gh-repo[aria-selected="true"]{background:var(--accent-selected-bg)}
+.gh-repo[aria-selected="true"] .n,.gh-repo[aria-selected="true"] .p{color:#fff}
 .diff{font-family:var(--font-mono);font-size:12px;line-height:18px;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);overflow:auto;max-height:52vh;background:var(--surface-100)}
 .diff table{border-collapse:collapse;width:100%;min-width:520px;font-size:inherit}
 .diff td{padding:0 8px;white-space:pre;vertical-align:top}

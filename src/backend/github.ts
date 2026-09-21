@@ -17,11 +17,25 @@ export interface Account {
   url: string;
 }
 
+/** A repository the signed-in user can clone — see src-tauri/src/github.rs. */
+export interface GhRepo {
+  name: string;
+  fullName: string;
+  private: boolean;
+  cloneUrl: string;
+  description: string;
+}
+
 /** Errors the UI explains itself instead of showing the raw message. */
 export const NO_HELPER = 'no-helper';
 
 // In the browser (npm run dev) there's no git: a pretend account shows the flow.
 const DEMO: Account = { login: 'octocat', name: 'The Octocat', email: '583231+octocat@users.noreply.github.com', avatar: '', url: 'https://github.com/octocat' };
+const DEMO_REPOS: GhRepo[] = [
+  { name: 'spoon-knife', fullName: 'octocat/Spoon-Knife', private: false, cloneUrl: 'https://github.com/octocat/Spoon-Knife.git', description: 'This repo is for demonstration purposes only.' },
+  { name: 'hello-world', fullName: 'octocat/Hello-World', private: false, cloneUrl: 'https://github.com/octocat/Hello-World.git', description: 'My first repository on GitHub!' },
+  { name: 'secret-lab', fullName: 'octocat/secret-lab', private: true, cloneUrl: 'https://github.com/octocat/secret-lab.git', description: '' }
+];
 let demoSignedIn = false;
 
 export const GitHub = {
@@ -33,5 +47,9 @@ export const GitHub = {
   async signOut(): Promise<void> {
     if (inTauri()) return invoke<void>('github_sign_out');
     demoSignedIn = false;
+  },
+  async repos(): Promise<GhRepo[]> {
+    if (inTauri()) return invoke<GhRepo[]>('github_repos');
+    await sleep(400); return demoSignedIn ? DEMO_REPOS : [];
   }
 };

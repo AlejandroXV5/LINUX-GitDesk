@@ -8,7 +8,7 @@ mod git;
 mod github;
 
 use git::{CommitOptions, FileChange, OpResult, PullRequest, Repo, Snapshot};
-use github::Account;
+use github::{Account, Repo as GhRepo};
 
 type R<T> = Result<T, String>;
 
@@ -236,6 +236,12 @@ async fn github_sign_out() -> R<()> {
     github::sign_out()
 }
 
+/// The signed-in user's repositories, for the Clone dialog's repo picker.
+#[tauri::command]
+async fn github_repos() -> R<Vec<GhRepo>> {
+    github::list_repos()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -283,7 +289,8 @@ pub fn run() {
             pr_merge,
             github_account,
             github_sign_in,
-            github_sign_out
+            github_sign_out,
+            github_repos
         ])
         .run(tauri::generate_context!())
         .expect("error while running GitDesk");

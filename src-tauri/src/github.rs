@@ -32,6 +32,17 @@ pub struct Account {
     pub url: String,
 }
 
+#[derive(Serialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Repo {
+    pub name: String,
+    pub full_name: String,
+    pub private: bool,
+    /// `https://github.com/<full_name>.git` — cloned with the same credential as Push/Pull.
+    pub clone_url: String,
+    pub description: String,
+}
+
 #[derive(Debug, PartialEq)]
 struct Credential {
     username: String,
@@ -78,6 +89,37 @@ pub fn sign_out() -> Result<(), String> {
     let Ok(out) = credential("fill", "", false) else { return Ok(()) };
     let Some(c) = parse_credential(&out) else { return Ok(()) };
     credential("reject", &c.fields(), false).map(|_| ()).map_err(|e| fill_error(&e))
+}
+
+/// The signed-in user's repositories (owned, collaborator or org member), most
+/// recently pushed first. Used by the Clone dialog's "Your repositories" picker.
+/// Errors the same way `sign_in` does when there's no credential yet.
+pub fn list_repos() -> Result<Vec<Repo>, String> {
+    let out = credential("fill", "", false).map_err(|e| fill_error(&e))?;
+    let c = parse_credential(&out).ok_or("the credential helper returned no token")?;
+    let mut repos = Vec::new();
+    for page in 1..=3 {
+        let url = format!(
+            "{API}/user/repos?sort=pushed&per_page=100&page={page}&affiliation=owner,collaborator,organization_member"
+        );
+        let (code, body) = http_get(&url, Some(&c.password))?;
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
+        if code != 200 {
+            return Err(format!("GitHub API {code}: {}", v["message"].as_str().unwrap_or("request failed")));
+        }
+        let page_repos: Vec<Repo> = v.as_array().map(|a| a.iter().map(repo_from).collect()).unwrap_or_default();
+        let got = page_repos.len();
+        repos.extend(page_repos);
+        if got < 100 {
+            break;
+        }
+    }
+    Ok(repos)
+}
+
+fn repo_from(v: &serde_json::Value) -> Repo {
+    let s = |k: &str| v[k].as_str().unwrap_or_default().to_string();
+    Repo { name: s("name"), full_name: s("full_name"), private: v["private"].as_bool().unwrap_or(false), clone_url: s("clone_url"), description: s("description") }
 }
 
 /// `git credential <action>` for https://github.com; `fields` are extra `key=value`
