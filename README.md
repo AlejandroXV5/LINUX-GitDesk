@@ -32,6 +32,16 @@ Arch: `sudo pacman -S webkit2gtk-4.1 base-devel curl wget file openssl appmenu-g
 
 > ¿Trabajas desde Windows? Usa WSL2 (Ubuntu) con WSLg y sigue los mismos pasos dentro de Linux.
 
+## Instalar en Linux (un comando)
+
+Desde la carpeta del proyecto, con tu usuario normal (pedirá `sudo`):
+
+```bash
+bash install.sh
+```
+
+Instala los paquetes del sistema (apt, dnf o pacman), Node y Rust si faltan, compila GitDesk, lo instala (.deb en Ubuntu/Debian, .rpm en Fedora, binario + lanzador en Arch) y configura Git Credential Manager para *Iniciar sesión* con GitHub. Se puede volver a ejecutar para actualizar.
+
 ## Empezar
 
 ```bash
