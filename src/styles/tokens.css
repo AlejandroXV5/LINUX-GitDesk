@@ -1,0 +1,42 @@
+/* GitDesk design tokens — generated from the GitDesk design system (design/design-system/tokens.json).
+   Light is the base; dark applies with the OS preference or an explicit [data-theme="dark"]. */
+:root{
+  --surface-100:#ffffff; --surface-200:#f3f3f3; --surface-300:#ffffff; --surface-hover:#e8e8e8;
+  --surface-selected:#e4e6f1; --accent-selected-bg:#0060c0;
+  --border-subtle:#e0e0e0; --border-control:#8a8a8a;
+  --ink:#242424; --ink-secondary:#6b6b6b; --ink-disabled:#a0a0a0; --ink-inverse:#ffffff;
+  --brand:#005fb8; --brand-solid:#0067b8; --brand-solid-hover:#005aa1;
+  --status-added:#2f7d32; --status-modified:#9b6a1f; --status-deleted:#c72e2e; --status-renamed:#8250b8; --status-warning:#9a7b00;
+  --graph-1:#9b6a1f; --graph-2:#0067b8; --graph-3:#2f7d32; --graph-4:#8250b8; --graph-5:#1a8f7b;
+  --identity-1:#8a5a2b; --identity-2:#2f6fb0; --identity-3:#3f7d3f; --identity-4:#7a4fa0; --identity-5:#1f8f82;
+  --focus-ring:#005fb8;
+  --space-1:2px; --space-2:4px; --space-3:8px; --space-4:12px; --space-5:16px; --space-6:24px;
+  --radius-sm:2px; --radius-md:4px; --radius-full:999px;
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.16); --shadow-md:0 6px 20px rgba(0,0,0,0.22);
+  --font-sans:"Cantarell","Ubuntu","Noto Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"Cascadia Code","DejaVu Sans Mono",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --surface-100:#1e1e1e; --surface-200:#252526; --surface-300:#2d2d2d; --surface-hover:#2f3233;
+    --surface-selected:#37373d; --accent-selected-bg:#0a4d78;
+    --border-subtle:#3c3c3c; --border-control:#6e6e6e;
+    --ink:#cccccc; --ink-secondary:#9d9d9d; --ink-disabled:#656565; --ink-inverse:#ffffff;
+    --brand:#3fa8ff; --brand-solid:#0e639c; --brand-solid-hover:#1177bb;
+    --status-added:#89d185; --status-modified:#d19a66; --status-deleted:#f14c4c; --status-renamed:#b180d7; --status-warning:#cca700;
+    --graph-1:#d19a66; --graph-2:#4fc1ff; --graph-3:#89d185; --graph-4:#b180d7; --graph-5:#4ec9b0;
+    --focus-ring:#3fa8ff;
+    --shadow-sm:0 1px 2px rgba(0,0,0,0.34); --shadow-md:0 6px 20px rgba(0,0,0,0.5);
+  }
+}
+:root[data-theme="dark"]{
+  --surface-100:#1e1e1e; --surface-200:#252526; --surface-300:#2d2d2d; --surface-hover:#2f3233;
+  --surface-selected:#37373d; --accent-selected-bg:#0a4d78;
+  --border-subtle:#3c3c3c; --border-control:#6e6e6e;
+  --ink:#cccccc; --ink-secondary:#9d9d9d; --ink-disabled:#656565; --ink-inverse:#ffffff;
+  --brand:#3fa8ff; --brand-solid:#0e639c; --brand-solid-hover:#1177bb;
+  --status-added:#89d185; --status-modified:#d19a66; --status-deleted:#f14c4c; --status-renamed:#b180d7; --status-warning:#cca700;
+  --graph-1:#d19a66; --graph-2:#4fc1ff; --graph-3:#89d185; --graph-4:#b180d7; --graph-5:#4ec9b0;
+  --focus-ring:#3fa8ff;
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.34); --shadow-md:0 6px 20px rgba(0,0,0,0.5);
+}

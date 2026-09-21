@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <title>GitDesk</title>
+  </head>
+  <body>
+<div class="app" id="app">
+  <header class="titlebar">
+    <div class="tb-left"><i data-ic="logo"></i><span class="win-title" id="winTitle"></span></div>
+    <div class="tb-right">
+      <button class="wbtn close" id="winClose" data-i18n-title="tl.close"><i data-ic="x"></i></button>
+    </div>
+  </header>
+
+  <nav class="menubar" id="menubar" role="menubar">
+    <button class="mb" data-menu="file" data-keepmenu data-i18n="m.file"></button>
+    <button class="mb" data-menu="edit" data-keepmenu data-i18n="m.edit"></button>
+    <button class="mb" data-menu="view" data-keepmenu data-i18n="m.view"></button>
+    <button class="mb" data-menu="git" data-keepmenu data-i18n="m.git"></button>
+    <button class="mb" data-menu="tools" data-keepmenu data-i18n="m.tools"></button>
+    <button class="mb" data-menu="help" data-keepmenu data-i18n="m.help"></button>
+    <span class="t-spacer"></span>
+    <button class="wbtn pill acct" id="accountBtn" data-keepmenu></button>
+    <button class="wbtn pill" id="langBtn" data-i18n-title="tl.lang"><i data-ic="globe"></i><span id="langLabel"></span></button>
+    <button class="wbtn pill" id="themeBtn" data-i18n-title="tl.theme"><span id="themeIcon"></span><span id="themeLabel"></span></button>
+  </nav>
+
+  <div class="toolbar" id="toolbar">
+    <button class="t-btn icon-only hamburger" data-act="toggleSidebar" data-i18n-title="v.sidebar"><i data-ic="menu"></i></button>
+    <button class="t-btn sync-op" data-act="fetch" data-i18n-title="tip.fetch"><i data-ic="fetch"></i><span>Fetch</span></button>
+    <button class="t-btn sync-op" data-act="pull" data-i18n-title="tip.pull"><i data-ic="pull"></i><span>Pull</span><span class="count" id="pullCount" hidden></span></button>
+    <button class="t-btn sync-op" data-act="push" data-i18n-title="tip.push"><i data-ic="push"></i><span>Push</span><span class="count" id="pushCount" hidden></span></button>
+    <button class="t-btn sync-op" data-act="sync" data-i18n-title="tip.sync"><i data-ic="sync"></i><span>Sync</span></button>
+    <span class="t-sep"></span>
+    <button class="t-btn needs-repo" data-act="newBranch"><i data-ic="branchPlus"></i><span data-i18n="tb.branch"></span></button>
+    <button class="t-btn needs-repo" data-act="stash"><i data-ic="stash"></i><span>Stash</span></button>
+    <span class="t-spacer"></span>
+    <button class="t-btn icon-only" data-act="toggleOutput" id="outputToggle" data-i18n-title="v.output"><i data-ic="terminal"></i></button>
+    <button class="t-btn icon-only" data-act="toggleDock" id="dockToggle" data-i18n-title="v.dock"><i data-ic="panel"></i></button>
+    <button class="t-btn icon-only" data-act="options" data-i18n-title="t.options"><i data-ic="gear"></i></button>
+  </div>
+
+  <div class="workspace" id="workspace">
+    <div class="backdrop" id="backdrop"></div>
+    <section class="welcome" id="welcome"></section>
+    <div class="leftcol">
+      <div class="toprow">
+        <nav class="sidebar" id="sidebar">
+          <label class="filterbox"><i data-ic="search"></i><input id="branchFilter" data-i18n-ph="sb.filter" autocomplete="off"></label>
+          <div class="tree" id="tree" role="tree"></div>
+        </nav>
+        <section class="graph-pane" id="graphPane">
+          <div class="gtoolbar">
+            <button class="icon-btn" data-act="refresh" data-i18n-title="gr.refresh"><i data-ic="refresh"></i></button>
+            <button class="icon-btn" data-act="toggleAll" id="allBtn" data-i18n-title="gr.allBranches"><i data-ic="branches"></i></button>
+            <button class="icon-btn" data-act="toggleTags" id="tagsBtn" data-i18n-title="gr.tags"><i data-ic="tag"></i></button>
+            <button class="icon-btn" data-act="gitSettings" data-i18n-title="g.settings"><i data-ic="gear"></i></button>
+            <span class="t-spacer"></span>
+            <label class="filterbox"><input id="historyFilter" data-i18n-ph="gr.filter" autocomplete="off"><i data-ic="search"></i></label>
+          </div>
+          <div class="gref"><span data-i18n="gr.branchTag"></span><button class="link" id="viewRefBtn" data-keepmenu></button></div>
+          <div id="syncSections"></div>
+          <div class="gridrow thead" id="thead">
+            <span data-i18n="col.ref"></span><span data-i18n="col.graph"></span><span data-i18n="col.msg"></span><span class="c-author" data-i18n="col.author"></span><span class="c-date" data-i18n="col.date"></span><span data-i18n="col.id"></span>
+          </div>
+          <div class="graph-scroll" id="graphBody" tabindex="0" role="grid"></div>
+          <div class="detail" id="detail" hidden></div>
+        </section>
+      </div>
+      <section class="output" id="output">
+        <div class="out-head">
+          <strong data-i18n="out.title"></strong>
+          <label style="display:flex;align-items:center;gap:6px"><span data-i18n="out.from"></span>
+            <select id="outChannel"><option value="git" data-i18n="out.git"></option><option value="app" data-i18n="out.app"></option></select>
+          </label>
+          <span class="t-spacer"></span>
+          <button class="icon-btn" id="outClear" data-i18n-title="out.clear"><i data-ic="clear"></i></button>
+          <button class="icon-btn" data-act="toggleOutput" data-i18n-title="dl.close"><i data-ic="x"></i></button>
+        </div>
+        <div class="out-body" id="outBody" role="log"></div>
+      </section>
+    </div>
+
+    <aside class="dock" id="dock">
+      <div class="dock-head"><span class="ttl" id="dockTitle"></span><button class="icon-btn" data-act="toggleDock" data-i18n-title="dl.close"><i data-ic="x"></i></button></div>
+      <div class="progress" id="dockProgress" hidden></div>
+      <div class="dock-bar">
+        <button class="selectbox" id="branchSelect" data-keepmenu><i data-ic="branch"></i><span class="lbl" id="branchSelectLabel"></span><i data-ic="chevDown"></i></button>
+        <button class="icon-btn sync-op" data-act="fetch" data-i18n-title="tip.fetch"><i data-ic="fetch"></i></button>
+        <button class="icon-btn sync-op" data-act="pull" data-i18n-title="tip.pull"><i data-ic="pull"></i></button>
+        <button class="icon-btn sync-op" data-act="push" data-i18n-title="tip.push"><i data-ic="push"></i></button>
+        <button class="icon-btn sync-op" data-act="sync" data-i18n-title="tip.sync"><i data-ic="sync"></i></button>
+        <button class="icon-btn" id="dockMore" data-keepmenu data-i18n-title="dk.more"><i data-ic="dots"></i></button>
+      </div>
+      <div class="dock-counts"><button class="ab" id="dockCounts" data-keepmenu></button><button class="link" data-act="viewAll" data-i18n="dk.viewAll"></button></div>
+      <div id="notice"></div>
+      <div class="compose">
+        <div class="msgwrap">
+          <textarea id="commitMsg" data-i18n-ph="dk.msgPh" rows="3"></textarea>
+          <button class="icon-btn hashbtn" id="hashBtn" data-keepmenu data-i18n-title="dk.hash">#</button>
+        </div>
+        <div class="compose-actions">
+          <div class="split"><button class="btn btn-primary" id="commitBtn"></button><button class="btn btn-primary split-arrow" id="commitMore" data-keepmenu data-i18n-title="dk.more"><i data-ic="chevDown"></i></button></div>
+          <label class="cb"><input type="checkbox" id="amendCb"><span class="box"><i data-ic="check"></i></span><span>Amend</span></label>
+        </div>
+      </div>
+      <div class="changes-scroll" id="changesScroll"></div>
+    </aside>
+  </div>
+
+  <footer class="statusbar">
+    <span class="sb-item sb-state" id="sbState"></span>
+    <span class="sb-item sb-demo" id="sbDemo" hidden></span>
+    <span class="sb-spacer"></span>
+    <button class="sb-item" id="sbSync" data-keepmenu></button>
+    <button class="sb-item" id="sbChanges"></button>
+    <button class="sb-item" id="sbBranch" data-keepmenu></button>
+    <button class="sb-item sb-hide-narrow" id="sbRepo" data-keepmenu></button>
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="shutdown" id="shutdown" hidden><i data-ic="logo"></i><strong id="shutTitle"></strong><p id="shutText"></p><button class="btn btn-primary" id="shutBtn"></button></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

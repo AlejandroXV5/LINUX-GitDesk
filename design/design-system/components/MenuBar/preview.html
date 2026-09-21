@@ -1,0 +1,19 @@
+<!-- @dsCard group="App shell" height=70 -->
+<div class="ds-root">
+  <div class="menubar">
+    <span class="item">File</span>
+    <span class="item">Edit</span>
+    <span class="item">View</span>
+    <span class="item">Repository</span>
+    <span class="item active">Branch</span>
+    <span class="item">Commit</span>
+    <span class="item">Help</span>
+  </div>
+</div>
+<style>
+  .ds-root{font-family:var(--font-sans)}
+  .menubar{height:32px;display:flex;align-items:center;gap:2px;background:var(--surface-200);border-bottom:1px solid var(--border-subtle);padding:0 var(--space-3)}
+  .item{font-size:13px;color:var(--ink);padding:5px var(--space-3);border-radius:var(--radius-sm);cursor:pointer}
+  .item:hover{background:var(--surface-hover)}
+  .item.active{background:var(--accent-selected-bg);color:var(--ink-inverse)}
+</style>

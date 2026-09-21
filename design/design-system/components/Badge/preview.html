@@ -1,0 +1,34 @@
+<!-- @dsCard group="Foundations" height=160 -->
+<div class="ds-root">
+  <div class="row">
+    <span class="pill ahead">↑ 2</span>
+    <span class="pill behind">↓ 5</span>
+    <span class="pill neutral">3</span>
+  </div>
+  <div class="row">
+    <span class="status-glyph added">A</span>
+    <span class="status-glyph modified">M</span>
+    <span class="status-glyph deleted">D</span>
+    <span class="status-glyph renamed">R</span>
+  </div>
+  <div class="row">
+    <span class="dot added"></span><span class="dot modified"></span><span class="dot deleted"></span><span class="dot warning"></span>
+  </div>
+</div>
+<style>
+  .ds-root{font-family:var(--font-sans);display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-5)}
+  .row{display:flex;align-items:center;gap:var(--space-3)}
+  .pill{font-family:var(--font-mono);font-size:11px;line-height:14px;font-weight:600;padding:2px 6px;border-radius:var(--radius-full);background:var(--surface-hover);color:var(--ink-secondary)}
+  .pill.ahead{color:var(--status-added)}
+  .pill.behind{color:var(--status-deleted)}
+  .status-glyph{width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border-radius:var(--radius-sm)}
+  .status-glyph.added{color:var(--status-added)}
+  .status-glyph.modified{color:var(--status-modified)}
+  .status-glyph.deleted{color:var(--status-deleted)}
+  .status-glyph.renamed{color:var(--status-renamed)}
+  .dot{width:8px;height:8px;border-radius:var(--radius-full)}
+  .dot.added{background:var(--status-added)}
+  .dot.modified{background:var(--status-modified)}
+  .dot.deleted{background:var(--status-deleted)}
+  .dot.warning{background:var(--status-warning)}
+</style>

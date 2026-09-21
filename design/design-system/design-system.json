@@ -1,0 +1,25 @@
+{
+  "v": 3,
+  "layout": "files",
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-09-21T18:00:00Z"
+  },
+  "title": "GitDesk",
+  "namespace": "GitDesk",
+  "libraries": [],
+  "sections": {},
+  "groups": [],
+  "assetGroups": {},
+  "blobs": {},
+  "docs": {
+    "readme": "project/README.md",
+    "sections": []
+  },
+  "lastChange": {
+    "by": "Tienda Hi",
+    "via": "Claude",
+    "at": "2026-09-21T20:30:00Z",
+    "note": "ChangesPanel now matches Visual Studio's Git Changes: branch selector with Fetch/Pull/Push/Sync, outgoing/incoming counts, info bar, # work-item links, split Commit button, staged/unstaged sections."
+  }
+}

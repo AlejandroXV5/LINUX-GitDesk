@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "GitDesk",
+  "version": "0.1.0",
+  "identifier": "dev.gitdesk.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "GitDesk",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 820,
+        "minHeight": 520,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "rpm", "appimage"],
+    "category": "DeveloperTool",
+    "shortDescription": "A Git client for the Linux desktop",
+    "longDescription": "GitDesk shows your branches, the commit graph and pending changes side by side, with Fetch, Pull, Push and Sync one click away.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ],
+    "linux": {
+      "deb": { "depends": ["git", "curl"] },
+      "rpm": { "depends": ["git", "curl"] }
+    }
+  }
+}

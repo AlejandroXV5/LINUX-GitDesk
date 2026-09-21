@@ -1,0 +1,48 @@
+<!-- @dsCard height=300 -->
+<div class="ds-root">
+  <svg viewBox="0 0 960 300" width="960" height="300" xmlns="http://www.w3.org/2000/svg">
+    <!--
+      blocks: brand-solid 150x200 slab (centered-right), status-added 120x90 (bleeds top edge),
+              graph-1 130x190 (bleeds right+bottom edge), graph-4 120x90 (relief tint, lower-mid)
+      arrangement: one tall slab flanked by two edge-bleeding blocks above/below-right, a small
+              relief block filling the gap beneath the slab — a staggered stack, not a grid
+      pattern: a commit graph — dots joined by branching lines, GitDesk's own defining shape,
+              drawn in ink through the gaps between blocks, never a generic grid or dots-for-dots'-sake
+      scales: radius-md (rx=4) on every block; the graph pattern's pitch follows space-6/space-7
+    -->
+    <rect class="ground" x="0" y="0" width="960" height="300"/>
+    <rect class="brand" x="520" y="60" width="150" height="200" rx="4"/>
+    <rect class="added" x="690" y="0" width="120" height="90" rx="4"/>
+    <rect class="graph1" x="830" y="110" width="130" height="190" rx="4"/>
+    <rect class="graph4" x="690" y="205" width="120" height="90" rx="4"/>
+
+    <g class="pattern">
+      <path d="M470 40 L560 40" stroke-width="2"/>
+      <path d="M470 40 C500 40 500 130 560 130" stroke-width="2" fill="none"/>
+      <path d="M470 130 L520 130" stroke-width="2"/>
+      <path d="M470 220 C500 220 500 130 470 130" stroke-width="2" fill="none"/>
+      <path d="M470 220 L500 220" stroke-width="2"/>
+      <circle cx="470" cy="40" r="6"/>
+      <circle cx="560" cy="40" r="6"/>
+      <circle cx="470" cy="130" r="6"/>
+      <circle cx="470" cy="220" r="6"/>
+      <circle cx="500" cy="220" r="6"/>
+    </g>
+
+    <text class="name" x="40" y="215">GitDesk</text>
+    <text class="tagline" x="40" y="244">Version control that stays out of your way.</text>
+  </svg>
+</div>
+<style>
+  .ds-root{width:960px}
+  svg{display:block;font-family:var(--font-sans)}
+  .ground{fill:var(--surface-100)}
+  .brand{fill:var(--brand-solid)}
+  .added{fill:var(--status-added)}
+  .graph1{fill:var(--graph-1)}
+  .graph4{fill:var(--graph-4)}
+  .pattern path{stroke:var(--ink)}
+  .pattern circle{fill:var(--ink)}
+  .name{font-size:96px;font-weight:600;fill:var(--ink)}
+  .tagline{font-size:14px;font-weight:400;fill:var(--ink-secondary)}
+</style>

@@ -1,0 +1,3 @@
+Client-side decoration matching a stock GNOME/KDE window: minimize, maximize and close as plain glyph buttons on the right, no OS chrome assumed. The title is `repository — folder (branch)`, set in `ink-secondary` rather than full `ink` — on a Linux desktop the window's own shell (GNOME top bar, KDE's window list) already carries the app identity, so GitDesk's title bar can stay quiet and let the menu bar below it carry the visual weight instead.
+
+The close button is the one control in the whole system that fills solid on hover, and it's the one destructive-looking interaction that isn't actually destructive — closing a window never touches Git state — so its `status-deleted` hover fill is a familiar affordance, not a warning about data loss.

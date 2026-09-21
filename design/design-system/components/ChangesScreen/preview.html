@@ -1,0 +1,148 @@
+<!-- @dsCard group="Full screens" height=760 width=1180 subtitle="Assembled window — Git Changes" -->
+<div class="ds-root">
+  <button class="theme-toggle" id="toggle">Toggle theme</button>
+  <div class="window">
+    <div class="titlebar">
+      <div class="left">
+        <span class="glyph"><svg viewBox="0 0 16 16"><circle cx="4.5" cy="4" r="1.6" fill="currentColor"/><circle cx="4.5" cy="12" r="1.6" fill="currentColor"/><circle cx="11.5" cy="8" r="1.6" fill="currentColor"/><path d="M4.5 5.6V10.4M5.8 8A3.4 3.4 0 0 0 9.2 9.4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></span>
+        <span class="title">GitDesk — gitdesk (main)</span>
+      </div>
+      <div class="right">
+        <span class="wctl"><svg viewBox="0 0 12 12"><rect x="2" y="5.3" width="8" height="1.4" fill="currentColor"/></svg></span>
+        <span class="wctl"><svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" rx="1" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></span>
+        <span class="wctl close"><svg viewBox="0 0 12 12"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+      </div>
+    </div>
+    <div class="menubar">
+      <span class="item">File</span><span class="item">Edit</span><span class="item">View</span><span class="item">Repository</span><span class="item">Branch</span><span class="item active">Commit</span><span class="item">Help</span>
+    </div>
+    <div class="toolbar">
+      <button class="t-btn"><svg viewBox="0 0 16 16"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 12.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span>Fetch</span></button>
+      <button class="t-btn"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 5.2v5.6M5.6 8l2.4 2.4L10.4 8" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Pull</span></button>
+      <button class="t-btn"><svg viewBox="0 0 16 16"><path d="M8 12V4M4.5 7.5 8 4l3.5 3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Push</span><span class="count">2</span></button>
+      <span class="sep"></span>
+      <button class="t-btn"><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.6" fill="currentColor"/><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="11" cy="8" r="1.6" fill="currentColor"/><path d="M5 5.6V10.4M6.3 8A3.2 3.2 0 0 0 9.4 9.4" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg><span>Branch</span></button>
+      <button class="t-btn"><svg viewBox="0 0 16 16"><rect x="2.5" y="4" width="11" height="8" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M2.5 7h11" stroke="currentColor" stroke-width="1.5"/></svg><span>Stash</span></button>
+      <span class="spacer"></span>
+      <span class="search"><svg viewBox="0 0 16 16"><circle cx="6.75" cy="6.75" r="4.25" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M10 10l3.5 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><input placeholder="Search commits"/></span>
+    </div>
+
+    <div class="body">
+      <div class="sidebar">
+        <div class="search box-search"><svg viewBox="0 0 16 16"><circle cx="6.75" cy="6.75" r="4.25" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M10 10l3.5 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><input placeholder="Filter"/></div>
+        <div class="section-head"><svg class="chev" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="label">Branches / Tags</span></div>
+        <div class="row depth0"><svg class="ic" style="color:var(--brand)" viewBox="0 0 16 16"><path d="M8 2l2 6-2 6-2-6z" fill="currentColor"/></svg><span class="txt strong">gitdesk (main)</span></div>
+        <div class="row depth1"><svg class="ic" style="color:var(--status-added)" viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.6" fill="currentColor"/><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="11" cy="8" r="1.6" fill="currentColor"/><path d="M5 5.6V10.4M6.3 8A3.2 3.2 0 0 0 9.4 9.4" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg><span class="txt">feature/oauth-login</span><span class="spacer"></span><span class="pill ahead">↑2</span></div>
+        <div class="row depth1 selected"><svg class="ic" style="color:var(--ink-inverse)" viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.6" fill="currentColor"/><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="11" cy="8" r="1.6" fill="currentColor"/><path d="M5 5.6V10.4M6.3 8A3.2 3.2 0 0 0 9.4 9.4" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg><span class="txt strong">main</span></div>
+        <div class="row depth1"><svg class="ic" style="color:var(--brand)" viewBox="0 0 16 16"><path d="M2 4.5h4l1.2 1.5H14v6.5H2z" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linejoin="round"/></svg><span class="txt">remotes/origin</span></div>
+        <div class="section-head"><svg class="chev" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="label">Pull Requests</span></div>
+        <div class="empty">There are currently no pull requests.</div>
+      </div>
+
+      <div class="main">
+        <div class="repo-row"><span class="select"><span>gitdesk</span><svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+        <div class="compose">
+          <textarea>feat(auth): add refresh-token rotation</textarea>
+          <div class="compose-actions"><button class="btn btn-primary">Commit All</button><label class="cb"><span class="box"></span>Amend</label></div>
+        </div>
+        <div class="section grow">
+          <div class="section-head"><svg class="chev" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="label">Changes</span><span class="pill neutral">4</span></div>
+          <div class="file-row"><span class="status-glyph modified">M</span><span class="path"><span class="txt">auth/token_service.py</span><span class="dir">src/auth</span></span></div>
+          <div class="file-row"><span class="status-glyph added">A</span><span class="path"><span class="txt">test_token_rotation.py</span><span class="dir">tests/auth</span></span></div>
+          <div class="file-row"><span class="status-glyph renamed">R</span><span class="path"><span class="txt">login_view.py <span class="arrow">→</span> session_view.py</span><span class="dir">src/web</span></span></div>
+          <div class="file-row staged"><span class="status-glyph deleted">D</span><span class="path"><span class="txt">legacy_session.py</span><span class="dir">src/auth</span></span></div>
+        </div>
+        <div class="section"><div class="section-head"><svg class="chev" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="label">Stashes</span></div><div class="empty">There are no stashes.</div></div>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <span class="chip"><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.6" fill="currentColor"/><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="11" cy="8" r="1.6" fill="currentColor"/><path d="M5 5.6V10.4M6.3 8A3.2 3.2 0 0 0 9.4 9.4" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>main</span>
+      <span class="chip"><svg viewBox="0 0 16 16"><path d="M8 12V4M4.5 7.5 8 4l3.5 3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>2</span>
+      <span class="chip"><svg viewBox="0 0 16 16"><path d="M8 4v8M4.5 8.5 8 12l3.5-3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>0</span>
+      <span class="spacer"></span>
+      <span class="chip muted">4 changes</span><span class="chip muted">UTF-8</span><span class="chip muted">LF</span>
+    </div>
+  </div>
+</div>
+<style>
+  .ds-root{font-family:var(--font-sans);position:relative}
+  .theme-toggle{position:absolute;top:8px;right:8px;z-index:2;font-family:var(--font-sans);font-size:12px;padding:5px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-control);background:var(--surface-300);color:var(--ink);cursor:pointer}
+  .window{width:1180px;height:740px;display:flex;flex-direction:column;background:var(--surface-100);overflow:hidden}
+  .titlebar{height:38px;flex:none;display:flex;align-items:center;justify-content:space-between;background:var(--surface-200);border-bottom:1px solid var(--border-subtle);box-shadow:var(--shadow-sm);padding:0 var(--space-3) 0 var(--space-4)}
+  .titlebar .left{display:flex;align-items:center;gap:var(--space-3);color:var(--ink)}
+  .titlebar .glyph{width:16px;height:16px;color:var(--brand)}
+  .titlebar .title{font-size:12px;font-weight:600;color:var(--ink-secondary)}
+  .titlebar .right{display:flex;align-items:center;gap:2px}
+  .wctl{width:28px;height:28px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--ink-secondary)}
+  .wctl svg{width:12px;height:12px}
+  .wctl.close:hover{background:var(--status-deleted);color:var(--ink-inverse)}
+  .menubar{height:32px;flex:none;display:flex;align-items:center;gap:2px;background:var(--surface-200);border-bottom:1px solid var(--border-subtle);padding:0 var(--space-3)}
+  .menubar .item{font-size:13px;color:var(--ink);padding:5px var(--space-3);border-radius:var(--radius-sm);cursor:pointer}
+  .menubar .item.active{background:var(--accent-selected-bg);color:var(--ink-inverse)}
+  .toolbar{height:44px;flex:none;display:flex;align-items:center;gap:var(--space-2);background:var(--surface-200);border-bottom:1px solid var(--border-subtle);padding:0 var(--space-4)}
+  .t-btn{position:relative;display:flex;align-items:center;gap:var(--space-2);height:28px;padding:0 var(--space-3);background:transparent;border:none;border-radius:var(--radius-sm);color:var(--ink);font-family:var(--font-sans);font-size:12px;cursor:pointer}
+  .t-btn svg{width:16px;height:16px;flex:none}
+  .t-btn:hover{background:var(--surface-hover)}
+  .t-btn .count{background:var(--status-modified);color:var(--ink-inverse);font-size:10px;font-weight:700;padding:0 4px;border-radius:var(--radius-full);line-height:14px}
+  .sep{width:1px;height:20px;background:var(--border-subtle);margin:0 var(--space-2)}
+  .spacer{flex:1}
+  .search{display:flex;align-items:center;gap:var(--space-2);height:26px;background:var(--surface-300);border:1px solid var(--border-control);border-radius:var(--radius-sm);padding:0 var(--space-3);color:var(--ink-secondary)}
+  .search svg{width:13px;height:13px;flex:none}
+  .search input{border:none;background:transparent;font-family:var(--font-sans);font-size:12px;color:var(--ink);flex:1;outline:none}
+  .toolbar .search{width:180px}
+  .body{flex:1;display:flex;min-height:0}
+  .sidebar{width:260px;flex:none;background:var(--surface-200);border-right:1px solid var(--border-subtle);display:flex;flex-direction:column;overflow:auto}
+  .box-search{margin:var(--space-3)}
+  .section-head{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);cursor:pointer}
+  .section-head .chev{width:14px;height:14px;color:var(--ink-secondary);transform:rotate(90deg);flex:none}
+  .section-head .label{font-size:11px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--ink-secondary)}
+  .empty{padding:var(--space-2) var(--space-4) var(--space-4);font-size:12px;color:var(--ink-secondary)}
+  .row{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);cursor:pointer}
+  .row:hover{background:var(--surface-hover)}
+  .row.selected{background:var(--accent-selected-bg)}
+  .row.selected .txt{color:var(--ink-inverse)}
+  .row.depth0{padding-left:var(--space-4)}
+  .row.depth1{padding-left:28px}
+  .ic{width:16px;height:16px;flex:none;color:var(--ink-secondary)}
+  .txt{font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .txt.strong{font-weight:600}
+  .pill{font-family:var(--font-mono);font-size:11px;font-weight:600;padding:1px 5px;border-radius:var(--radius-full);background:var(--surface-hover)}
+  .pill.ahead{color:var(--status-added)}
+  .pill.neutral{color:var(--ink-secondary)}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+  .repo-row{padding:var(--space-3) var(--space-4)}
+  .select{display:flex;align-items:center;justify-content:space-between;height:28px;width:200px;background:var(--surface-300);border:1px solid var(--border-control);border-radius:var(--radius-sm);padding:0 var(--space-3);font-size:13px;color:var(--ink);cursor:pointer}
+  .select svg{width:12px;height:12px;color:var(--ink-secondary)}
+  .compose{padding:0 var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+  textarea{width:100%;font-family:var(--font-sans);font-size:13px;line-height:18px;color:var(--ink);background:var(--surface-300);border:1px solid var(--border-control);border-radius:var(--radius-sm);padding:var(--space-3);min-height:64px;resize:none}
+  .compose-actions{display:flex;align-items:center;gap:var(--space-4)}
+  .btn{font-size:13px;padding:5px var(--space-4);border-radius:var(--radius-sm);border:none;cursor:pointer}
+  .btn-primary{background:var(--brand-solid);color:var(--ink-inverse)}
+  .cb{display:flex;align-items:center;gap:var(--space-2);font-size:13px;color:var(--ink)}
+  .box{width:14px;height:14px;border:1px solid var(--border-control);border-radius:var(--radius-sm);background:var(--surface-300)}
+  .section{border-top:1px solid var(--border-subtle);padding-top:var(--space-2);display:flex;flex-direction:column}
+  .section.grow{flex:1;overflow:auto}
+  .file-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-4)}
+  .file-row:hover{background:var(--surface-hover)}
+  .file-row.staged{background:rgba(137,209,133,0.08)}
+  .status-glyph{width:16px;height:16px;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+  .status-glyph.modified{color:var(--status-modified)}
+  .status-glyph.added{color:var(--status-added)}
+  .status-glyph.deleted{color:var(--status-deleted)}
+  .status-glyph.renamed{color:var(--status-renamed)}
+  .path{flex:1;min-width:0;display:flex;align-items:baseline;gap:var(--space-2);overflow:hidden}
+  .path .txt{font-size:13px}
+  .path .arrow{color:var(--ink-secondary)}
+  .path .dir{font-size:12px;color:var(--ink-secondary);white-space:nowrap}
+  .statusbar{height:24px;flex:none;display:flex;align-items:center;gap:var(--space-1);background:var(--brand-solid);padding:0 var(--space-3);color:var(--ink-inverse)}
+  .statusbar .chip{display:flex;align-items:center;gap:var(--space-2);height:24px;padding:0 var(--space-3);font-size:12px}
+  .statusbar .chip svg{width:13px;height:13px}
+  .statusbar .chip.muted{opacity:.85}
+</style>
+<script>
+  document.getElementById('toggle').addEventListener('click', function () {
+    var html = document.documentElement;
+    html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  });
+</script>
