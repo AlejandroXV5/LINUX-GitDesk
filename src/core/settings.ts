@@ -17,6 +17,9 @@ export interface Settings {
   showSidebar: boolean;
   showDock: boolean;
   showOutput: boolean;
+  /** Drag-resized panel widths, in px — see the #sidebarResize / #dockResize handles. */
+  sidebarWidth: number;
+  dockWidth: number;
 }
 
 const DEFAULTS: Settings = {
@@ -33,7 +36,9 @@ const DEFAULTS: Settings = {
   pushAfterCommit: false,
   showSidebar: true,
   showDock: true,
-  showOutput: true
+  showOutput: true,
+  sidebarWidth: 272,
+  dockWidth: 372
 };
 
 export const S: Settings = Object.assign({}, DEFAULTS, store.get<Partial<Settings>>('gitdesk-settings', {}));

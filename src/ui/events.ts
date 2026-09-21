@@ -1,14 +1,14 @@
 // Event wiring: one delegated listener per region.
 import { svg } from '../core/icons';
 import { R, curBranch, hasRepo, headSha, refKind } from '../core/model';
-import { t } from '../core/settings';
+import { S, saveSettings, t } from '../core/settings';
 import { $, $$ } from '../core/util';
 import { accountMenu, signIn } from './account';
 import { act, winClose } from './actions';
 import { OUT, appLog, closeMenus, copyText, isNarrow, menuAnchor, menuAt, menuKeys, runNoticeAction, showMenu } from './core';
 import { dlgClone, dlgDelete, dlgDiff, dlgNewPR, dlgNewRepo, dlgOpenRepo, dlgOptions, dlgPR, dlgStash, dlgSubmodule } from './dialogs';
 import { branchPicker, commitMenu, commitMoreMenu, dockMoreMenu, fileAct, fileMenu, issuePicker, mainMenu, refMenu, repoMenuItems, syncMenu, viewRefMenu } from './menus';
-import { filesFor, renderAll, renderChrome, renderDetail, renderDock, renderGraph, renderLayout, renderOutput, renderSidebar } from './render';
+import { filesFor, outChannel, renderAll, renderChrome, renderDetail, renderDock, renderGraph, renderLayout, renderOutput, renderSidebar } from './render';
 import { B, DEMO, P, doOp, loadPrs, openRepo, refresh, removeRecent } from './session';
 
 const ta = () => $('#commitMsg') as HTMLTextAreaElement;
@@ -111,8 +111,12 @@ export function wire(){
   $('#viewRefBtn').addEventListener('click', e => menuAt(e.currentTarget as Element, viewRefMenu()));
 
   // output
-  $('#outChannel').addEventListener('change', renderOutput);
-  $('#outClear').addEventListener('click', () => { const ch = ($('#outChannel') as HTMLSelectElement).value; for (let i = OUT.length - 1; i >= 0; i--) if (OUT[i].ch === ch) OUT.splice(i, 1); renderOutput(); });
+  $('#outChannel').addEventListener('click', e => {
+    const b = closest<HTMLButtonElement>(e, 'button[data-v]'); if (!b) return;
+    $$('#outChannel button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    renderOutput();
+  });
+  $('#outClear').addEventListener('click', () => { const ch = outChannel(); for (let i = OUT.length - 1; i >= 0; i--) if (OUT[i].ch === ch) OUT.splice(i, 1); renderOutput(); });
 
   // Git Changes dock
   $('#branchSelect').addEventListener('click', e => branchPicker(e.currentTarget as HTMLElement));
@@ -194,4 +198,38 @@ export function wire(){
   // keep in sync with changes made outside GitDesk (editor, terminal)
   window.addEventListener('focus', () => { if (hasRepo()) refresh(); });
   setInterval(() => { if (hasRepo() && !document.hidden && !$('.menu, .popover, .dlg-backdrop')) refresh(); }, 10000);
+
+  // panel widths — restore the last drag, then let the user drag again
+  document.documentElement.style.setProperty('--sidebar-w', S.sidebarWidth + 'px');
+  document.documentElement.style.setProperty('--dock-w', S.dockWidth + 'px');
+  wireResize($('#sidebarResize'), $('#sidebar'), 200, 480, false, w => { S.sidebarWidth = w; document.documentElement.style.setProperty('--sidebar-w', w + 'px'); });
+  wireResize($('#dockResize'), $('#dock'), 280, 640, true, w => { S.dockWidth = w; document.documentElement.style.setProperty('--dock-w', w + 'px'); });
+}
+
+/**
+ * A draggable divider that resizes the panel next to it. `fromRight` is true for a
+ * panel whose left edge the handle sits at (like the dock) — dragging right shrinks
+ * it instead of growing it. Disabled below the drawer breakpoint, where panels are
+ * fixed-width overlays (see `isNarrow` and the `max-width:760px` CSS).
+ */
+function wireResize(handle: HTMLElement, panel: HTMLElement, min: number, max: number, fromRight: boolean, apply: (px: number) => void){
+  handle.addEventListener('pointerdown', e => {
+    if (isNarrow() || e.button !== 0) return;
+    e.preventDefault();
+    const startX = e.clientX, startW = panel.getBoundingClientRect().width;
+    handle.setPointerCapture(e.pointerId);
+    handle.classList.add('active');
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX;
+      apply(Math.round(Math.max(min, Math.min(max, startW + (fromRight ? -dx : dx)))));
+    };
+    const onUp = () => {
+      handle.classList.remove('active');
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', onUp);
+      saveSettings();
+    };
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+  });
 }

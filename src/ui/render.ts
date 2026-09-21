@@ -380,8 +380,10 @@ export function renderStatus(){
   $('#sbBranch').innerHTML = `${svg('branch')}<span>${esc(cb || s7(headSha()))}</span>`; $('#sbBranch').title = t('st.branchTip');
   $('#sbRepo').innerHTML = `${svg('repo')}<span>${esc(R.name)}</span>`; $('#sbRepo').title = R.path;
 }
+/** Which output source is selected: 'git' or 'app' — see the #outChannel toggle. */
+export const outChannel = () => $('#outChannel [aria-pressed="true"]').dataset.v || 'git';
 export function renderOutput(){
-  const ch = ($('#outChannel') as HTMLSelectElement).value || 'git', body = $('#outBody');
+  const ch = outChannel(), body = $('#outBody');
   const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 30;
   body.innerHTML = OUT.filter(l => l.ch === ch).map(l => `<div class="ol ${l.kind}">${l.kind === 'cmd' ? `<span class="ts">[${l.tm.toLocaleTimeString(locale(), { hour12: false })}]</span> ${ch === 'git' ? '&gt; ' : ''}` : '    '}${esc(l.text)}</div>`).join('');
   if (atBottom) body.scrollTop = body.scrollHeight;

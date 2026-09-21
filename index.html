@@ -52,6 +52,7 @@
           <label class="filterbox"><i data-ic="search"></i><input id="branchFilter" data-i18n-ph="sb.filter" autocomplete="off"></label>
           <div class="tree" id="tree" role="tree"></div>
         </nav>
+        <div class="resize-handle" id="sidebarResize" role="separator" aria-orientation="vertical" data-i18n-title="dl.dragResize"></div>
         <section class="graph-pane" id="graphPane">
           <div class="gtoolbar">
             <button class="icon-btn" data-act="refresh" data-i18n-title="gr.refresh"><i data-ic="refresh"></i></button>
@@ -73,9 +74,12 @@
       <section class="output" id="output">
         <div class="out-head">
           <strong data-i18n="out.title"></strong>
-          <label style="display:flex;align-items:center;gap:6px"><span data-i18n="out.from"></span>
-            <select id="outChannel"><option value="git" data-i18n="out.git"></option><option value="app" data-i18n="out.app"></option></select>
-          </label>
+          <span style="display:flex;align-items:center;gap:6px"><span data-i18n="out.from"></span>
+            <span class="seg" id="outChannel" role="group">
+              <button type="button" data-v="git" aria-pressed="true" data-i18n="out.git"></button>
+              <button type="button" data-v="app" aria-pressed="false" data-i18n="out.app"></button>
+            </span>
+          </span>
           <span class="t-spacer"></span>
           <button class="icon-btn" id="outClear" data-i18n-title="out.clear"><i data-ic="clear"></i></button>
           <button class="icon-btn" data-act="toggleOutput" data-i18n-title="dl.close"><i data-ic="x"></i></button>
@@ -84,6 +88,7 @@
       </section>
     </div>
 
+    <div class="resize-handle" id="dockResize" role="separator" aria-orientation="vertical" data-i18n-title="dl.dragResize"></div>
     <aside class="dock" id="dock">
       <div class="dock-head"><span class="ttl" id="dockTitle"></span><button class="icon-btn" data-act="toggleDock" data-i18n-title="dl.close"><i data-ic="x"></i></button></div>
       <div class="progress" id="dockProgress" hidden></div>

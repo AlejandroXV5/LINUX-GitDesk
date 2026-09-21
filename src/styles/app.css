@@ -57,13 +57,15 @@ button:disabled{cursor:default}
 .workspace{flex:1;display:flex;min-height:0;position:relative}
 .leftcol{flex:1;display:flex;flex-direction:column;min-width:0}
 .toprow{flex:1;display:flex;min-height:0}
-.sidebar{width:272px;flex:none;background:var(--surface-200);border-right:1px solid var(--border-subtle);display:flex;flex-direction:column;min-height:0}
+.sidebar{width:var(--sidebar-w,272px);flex:none;background:var(--surface-200);border-right:1px solid var(--border-subtle);display:flex;flex-direction:column;min-height:0}
 .graph-pane{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--surface-100)}
 .output{height:150px;flex:none;border-top:1px solid var(--border-subtle);background:var(--surface-200);display:flex;flex-direction:column}
-.dock{width:372px;flex:none;background:var(--surface-200);border-left:1px solid var(--border-subtle);display:flex;flex-direction:column;min-height:0;position:relative}
+.dock{width:var(--dock-w,372px);flex:none;background:var(--surface-200);border-left:1px solid var(--border-subtle);display:flex;flex-direction:column;min-height:0;position:relative}
+.resize-handle{flex:none;width:4px;margin:0 -2px;cursor:col-resize;background:transparent;position:relative;z-index:5;touch-action:none}
+.resize-handle:hover,.resize-handle.active{background:var(--brand)}
 @media (min-width:761px){
-  .app.no-sidebar .sidebar{display:none}
-  .app.no-dock .dock{display:none}
+  .app.no-sidebar .sidebar,.app.no-sidebar #sidebarResize{display:none}
+  .app.no-dock .dock,.app.no-dock #dockResize{display:none}
   .app.no-output .output{display:none}
 }
 .backdrop{display:none;position:absolute;inset:0;background:rgba(0,0,0,.42);z-index:19}
@@ -358,6 +360,7 @@ kbd{font-family:var(--font-mono);font-size:11px;padding:1px 6px;border:1px solid
   .cmp-cols{grid-template-columns:1fr}
   .win-title{display:none}
   .sb-hide-narrow{display:none}
+  .resize-handle{display:none}
 }
 
 /* ---- app additions (real app) ---- */
