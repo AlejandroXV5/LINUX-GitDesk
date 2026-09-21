@@ -263,9 +263,19 @@ async fn app_update(app: tauri::AppHandle) -> R<()> {
     .map_err(|e| e.to_string())?
 }
 
-/// Relaunches the (now updated) binary at the same path and exits this process.
+/// Relaunches the (now updated) binary and exits this process. The updater installs
+/// to /usr/local/bin, which may not be the running binary (the .deb puts it in
+/// /usr/bin) — restarting "at the same path" would bring back the old build.
 #[tauri::command]
 fn app_restart(app: tauri::AppHandle) {
+    let updated = std::path::Path::new(update::INSTALL_PATH);
+    if updated.is_file() && std::env::current_exe().ok().as_deref() != Some(updated) {
+        let args: Vec<String> = std::env::args().skip(1).collect();
+        if std::process::Command::new(updated).args(&args).spawn().is_ok() {
+            app.exit(0);
+            return;
+        }
+    }
     tauri::process::restart(&app.env());
 }
 

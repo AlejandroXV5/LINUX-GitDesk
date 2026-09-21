@@ -8,7 +8,7 @@ use std::process::Command;
 
 const REPO_URL: &str = "https://github.com/AlejandroXV5/LINUX-GITHUB-DESKTOP.git";
 const REPO_API: &str = "https://api.github.com/repos/AlejandroXV5/LINUX-GITHUB-DESKTOP/commits/main";
-const INSTALL_PATH: &str = "/usr/local/bin/gitdesk";
+pub(crate) const INSTALL_PATH: &str = "/usr/local/bin/gitdesk";
 
 fn current_commit() -> Option<&'static str> {
     let sha = env!("GITDESK_COMMIT");
@@ -59,7 +59,12 @@ fn checkout_dir() -> PathBuf {
 }
 
 fn run(progress: &dyn Fn(&str), dir: &Path, program: &str, args: &[&str]) -> Result<(), String> {
+    // A GUI launched right after install.sh may not have rustup's / Node's user
+    // directories in PATH yet (they come from ~/.profile at the next login).
+    let home = std::env::var("HOME").unwrap_or_default();
+    let path = format!("{home}/.cargo/bin:{home}/.local/bin:{}", std::env::var("PATH").unwrap_or_default());
     let out = Command::new(program)
+        .env("PATH", path)
         .current_dir(dir)
         .args(args)
         .output()
