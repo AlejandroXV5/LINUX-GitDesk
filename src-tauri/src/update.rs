@@ -137,7 +137,7 @@ mod tests {
     fn up_to_date_when_latest_starts_with_current(){
         assert_eq!(needs_update("abc1234", "abc1234def5678", "chore: x"), None);
         // GitHub's full 40-char sha vs. our baked short sha:
-        assert_eq!(needs_update("dc043d3", "dc043d3aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "msg"), None);
+        assert_eq!(needs_update("1a2b3c4", "1a2b3c4aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "msg"), None);
     }
 
     #[test]
