@@ -5,7 +5,7 @@ import { S, saveSettings, t } from '../core/settings';
 import { $, $$ } from '../core/util';
 import { accountMenu, signIn } from './account';
 import { act, winClose } from './actions';
-import { OUT, appLog, closeMenus, copyText, isNarrow, menuAnchor, menuAt, menuKeys, runNoticeAction, showMenu } from './core';
+import { OUT, appLog, busy, closeMenus, copyText, isNarrow, menuAnchor, menuAt, menuKeys, runNoticeAction, showMenu } from './core';
 import { dlgClone, dlgDelete, dlgDiff, dlgNewPR, dlgNewRepo, dlgOpenRepo, dlgOptions, dlgPR, dlgStash, dlgSubmodule } from './dialogs';
 import { branchPicker, commitMenu, commitMoreMenu, dockMoreMenu, fileAct, fileMenu, issuePicker, mainMenu, refMenu, repoMenuItems, syncMenu, viewRefMenu } from './menus';
 import { filesFor, outChannel, renderAll, renderChrome, renderDetail, renderDock, renderGraph, renderLayout, renderOutput, renderSidebar } from './render';
@@ -196,8 +196,8 @@ export function wire(){
   });
 
   // keep in sync with changes made outside GitDesk (editor, terminal)
-  window.addEventListener('focus', () => { if (hasRepo()) refresh(); });
-  setInterval(() => { if (hasRepo() && !document.hidden && !$('.menu, .popover, .dlg-backdrop')) refresh(); }, 10000);
+  window.addEventListener('focus', () => { if (hasRepo() && !busy) refresh(); });
+  setInterval(() => { if (hasRepo() && !busy && !document.hidden && !$('.menu, .popover, .dlg-backdrop')) refresh(); }, 10000);
 
   // panel widths — restore the last drag, then let the user drag again
   document.documentElement.style.setProperty('--sidebar-w', S.sidebarWidth + 'px');

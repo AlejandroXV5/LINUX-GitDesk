@@ -7,7 +7,7 @@ import { R, absDate, ancestors, curBranch, hasRepo, headSha, onlyIn, refKind, re
 import { S, saveSettings, t, w } from '../core/settings';
 import { $, $$, esc, firstLine, s7 } from '../core/util';
 import { account } from './account';
-import { appLog, dialog, toast, type DialogApi } from './core';
+import { appLog, busy, dialog, run, toast, type DialogApi } from './core';
 import { fileRowHtml, renderAll, renderSidebar } from './render';
 import { B, DEMO, P, doOp, isDemo, loadPrs, openRepo } from './session';
 import { VERSION } from '../version';
@@ -375,15 +375,18 @@ let autoTimer: number | undefined;
 export function setupAutoFetch(){
   clearInterval(autoTimer); autoTimer = undefined;
   if (S.autoFetch === 'off') return;
-  autoTimer = window.setInterval(async () => {
-    if (!hasRepo() || document.hidden) return;
-    const be = B();
-    if (be.simulateTeammate && Math.random() < 0.5) be.simulateTeammate(P());
-    const r = await be.fetch(P(), S.prune);
-    r.log.forEach(e => appLog('(auto) ' + e.cmd));
-    const { refresh } = await import('./session'); await refresh();
-    const n = Number(r.notice?.vars?.n || 0);
-    if (n) toast(t('n.autoFetch', { n }), { label: 'Pull', fn: () => { import('./actions').then(m => m.act.pull()); } });
-    renderSidebar();
+  autoTimer = window.setInterval(() => {
+    if (!hasRepo() || document.hidden || busy) return;
+    // Under the busy flag so a user pull/push can't run git alongside this fetch.
+    void run('st.fetching', async () => {
+      const be = B();
+      if (be.simulateTeammate && Math.random() < 0.5) be.simulateTeammate(P());
+      const r = await be.fetch(P(), S.prune);
+      r.log.forEach(e => appLog('(auto) ' + e.cmd));
+      const { refresh } = await import('./session'); await refresh();
+      const n = Number(r.notice?.vars?.n || 0);
+      if (n) toast(t('n.autoFetch', { n }), { label: 'Pull', fn: () => { import('./actions').then(m => m.act.pull()); } });
+      renderSidebar();
+    });
   }, Number(S.autoFetch) * 1000);
 }

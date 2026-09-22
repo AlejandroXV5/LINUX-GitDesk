@@ -204,6 +204,9 @@ fn git_command(dir: &Path) -> Command {
         .env("GCM_INTERACTIVE", "never")
         .env("GIT_EDITOR", "true")
         .env("GIT_MERGE_AUTOEDIT", "no")
+        // Background `git status` refreshes must not take index.lock and make a
+        // concurrent stage/commit fail with "index.lock: File exists".
+        .env("GIT_OPTIONAL_LOCKS", "0")
         .arg("-c")
         .arg("color.ui=false")
         .arg("-c")
@@ -246,6 +249,14 @@ impl Repo {
             .collect();
         self.log.push(LogEntry { cmd: format!("git {}", shown.join(" ")), lines: out.lines(), err: !out.ok() });
         out
+    }
+
+    /// Refs, shas and names come from the repo (e.g. tags a remote published), so one
+    /// starting with '-' would be parsed by git as an option like `--exec=<cmd>`.
+    fn reject_options(&mut self, args: &[&str]) -> Option<OpResult> {
+        let bad = args.iter().find(|a| looks_like_option(a))?;
+        let n = notice("error", "n.gitError", &[("msg", &format!("invalid name: {bad}"))], &[]);
+        Some(self.finish(false, Some(n)))
     }
 
     fn finish(&mut self, ok: bool, notice: Option<Notice>) -> OpResult {
@@ -464,19 +475,31 @@ impl Repo {
     }
 
     pub fn commit_files(&self, sha: &str) -> Vec<FileChange> {
-        let o = self.raw(&["show", "--no-color", "--format=", "--name-status", "-M", "--no-renames-limit", sha]);
-        let o = if o.ok() { o } else { self.raw(&["show", "--format=", "--name-status", "-M", sha]) };
+        if looks_like_option(sha) { return Vec::new(); }
+        let o = self.raw(&["show", "--no-color", "--format=", "--name-status", "-M", "--no-renames-limit", "--end-of-options", sha]);
+        let o = if o.ok() { o } else { self.raw(&["show", "--format=", "--name-status", "-M", "--end-of-options", sha]) };
         parse_name_status(&o.stdout)
     }
 
     pub fn stash_files(&self, id: &str) -> Vec<FileChange> {
+        if looks_like_option(id) { return Vec::new(); }
         let o = self.raw(&["stash", "show", "--name-status", "--include-untracked", id]);
         let o = if o.ok() { o } else { self.raw(&["stash", "show", "--name-status", id]) };
         parse_name_status(&o.stdout)
     }
 
     pub fn compare_files(&self, a: &str, b: &str) -> Vec<FileChange> {
-        parse_name_status(&self.raw(&["diff", "--name-status", "-M", b, a]).stdout)
+        if looks_like_option(a) || looks_like_option(b) { return Vec::new(); }
+        parse_name_status(&self.raw(&["diff", "--name-status", "-M", "--end-of-options", b, a]).stdout)
+    }
+
+    /// Pathspecs for a file's diff: a rename needs both its old and new path, or
+    /// git has nothing to pair it with and shows the whole file as added.
+    fn with_rename_source<'a>(changes: &'a [FileChange], path: &'a str) -> Vec<&'a str> {
+        match changes.iter().find(|c| c.path == path).and_then(|c| c.from.as_deref()) {
+            Some(from) => vec![from, path],
+            None => vec![path],
+        }
     }
 
     /// Unified diff text. `ctx` is "work" (unstaged), "staged", a commit sha,
@@ -489,18 +512,27 @@ impl Repo {
         } else if ctx == "staged" {
             self.raw(&["diff", "--cached", "-M", "--", path])
         } else if let Some(id) = ctx.strip_prefix("stash:") {
+            if looks_like_option(id) { return String::new(); }
             let base = format!("{id}^1");
-            let o = self.raw(&["diff", "-M", &base, id, "--", path]);
+            let o = self.raw(&["diff", "-M", "--end-of-options", &base, id, "--", path]);
             if o.stdout.trim().is_empty() {
                 // untracked files live in the stash's third parent
                 let u = format!("{id}^3");
-                self.raw(&["show", "--format=", &u, "--", path])
+                self.raw(&["show", "--format=", "--end-of-options", &u, "--", path])
             } else { o }
         } else if let Some(r) = ctx.strip_prefix("cmp:") {
             let (a, b) = r.split_once("..").unwrap_or((r, "HEAD"));
-            self.raw(&["diff", "-M", b, a, "--", path])
+            if looks_like_option(a) || looks_like_option(b) { return String::new(); }
+            let changes = self.compare_files(a, b);
+            let mut args = vec!["diff", "-M", "--end-of-options", b, a, "--"];
+            args.extend(Self::with_rename_source(&changes, path));
+            self.raw(&args)
         } else {
-            self.raw(&["show", "--format=", "-M", ctx, "--", path])
+            if looks_like_option(ctx) { return String::new(); }
+            let changes = self.commit_files(ctx);
+            let mut args = vec!["show", "--format=", "-M", "--end-of-options", ctx, "--"];
+            args.extend(Self::with_rename_source(&changes, path));
+            self.raw(&args)
         };
         o.stdout
     }
@@ -579,6 +611,7 @@ impl Repo {
         let Some(b) = branch.or_else(|| self.current_branch()) else {
             return self.finish(false, Some(notice("warn", "n.detached", &[], &[])));
         };
+        if let Some(r) = self.reject_options(&[&b]) { return r; }
         let remote = self.raw(&["remote"]).stdout.lines().next().unwrap_or("").to_string();
         if remote.is_empty() {
             return self.finish(false, Some(notice("warn", "n.noRemote", &[], &[])));
@@ -709,14 +742,16 @@ impl Repo {
     }
 
     pub fn checkout(&mut self, r#ref: &str, kind: &str) -> OpResult {
+        if let Some(r) = self.reject_options(&[r#ref]) { return r; }
         let o = match kind {
-            "local" => self.run(&["switch", r#ref]),
+            "local" => self.run(&["switch", "--end-of-options", r#ref]),
             "remote" => {
                 let local = r#ref.split_once('/').map(|x| x.1).unwrap_or(r#ref).to_string();
+                if let Some(r) = self.reject_options(&[&local]) { return r; }
                 let exists = self.raw(&["rev-parse", "-q", "--verify", &format!("refs/heads/{local}")]).ok();
-                if exists { self.run(&["switch", &local]) } else { self.run(&["switch", "--track", r#ref]) }
+                if exists { self.run(&["switch", "--end-of-options", &local]) } else { self.run(&["switch", "--track", "--end-of-options", r#ref]) }
             }
-            _ => self.run(&["switch", "--detach", r#ref]),
+            _ => self.run(&["switch", "--detach", "--end-of-options", r#ref]),
         };
         if !o.ok() {
             if o.stderr.contains("would be overwritten") {
@@ -734,23 +769,26 @@ impl Repo {
     }
 
     pub fn create_branch(&mut self, name: &str, from: &str, checkout: bool) -> OpResult {
+        if let Some(r) = self.reject_options(&[name, from]) { return r; }
         let o = if checkout {
-            self.run(&["switch", "-c", name, from])
+            self.run(&["switch", "-c", name, "--end-of-options", from])
         } else {
-            self.run(&["branch", "--no-track", name, from])
+            self.run(&["branch", "--no-track", "--end-of-options", name, from])
         };
         if !o.ok() { return self.fail(&o); }
         self.finish(true, Some(notice("ok", "n.branchCreated", &[("b", name)], &["push"])))
     }
 
     pub fn delete_ref(&mut self, r#ref: &str, kind: &str, force: bool) -> OpResult {
+        if let Some(r) = self.reject_options(&[r#ref]) { return r; }
         let o = match kind {
-            "local" => self.run(&["branch", if force { "-D" } else { "-d" }, r#ref]),
+            "local" => self.run(&["branch", if force { "-D" } else { "-d" }, "--end-of-options", r#ref]),
             "remote" => {
                 let (remote, name) = r#ref.split_once('/').unwrap_or(("origin", r#ref));
-                self.run(&["push", remote, "--delete", name])
+                if let Some(r) = self.reject_options(&[name]) { return r; }
+                self.run(&["push", remote, "--delete", "--end-of-options", name])
             }
-            _ => self.run(&["tag", "-d", r#ref]),
+            _ => self.run(&["tag", "-d", "--end-of-options", r#ref]),
         };
         if !o.ok() {
             if o.stderr.contains("not fully merged") {
@@ -762,8 +800,9 @@ impl Repo {
     }
 
     pub fn merge(&mut self, r#ref: &str) -> OpResult {
+        if let Some(r) = self.reject_options(&[r#ref]) { return r; }
         let b = self.current_branch().unwrap_or_else(|| "HEAD".into());
-        let o = self.run(&["merge", "--no-edit", r#ref]);
+        let o = self.run(&["merge", "--no-edit", "--end-of-options", r#ref]);
         if !o.ok() {
             if self.in_progress().as_deref() == Some("merge") {
                 return self.finish(false, Some(notice("error", "n.conflicts", &[("op", "merge")], &["mergeAbort"])));
@@ -778,9 +817,10 @@ impl Repo {
     }
 
     pub fn rebase(&mut self, onto: &str) -> OpResult {
+        if let Some(r) = self.reject_options(&[onto]) { return r; }
         let b = self.current_branch().unwrap_or_else(|| "HEAD".into());
-        let n = self.raw(&["rev-list", "--count", "--no-merges", &format!("{onto}..HEAD")]).stdout.trim().to_string();
-        let o = self.run(&["rebase", onto]);
+        let n = self.raw(&["rev-list", "--count", "--no-merges", "--end-of-options", &format!("{onto}..HEAD")]).stdout.trim().to_string();
+        let o = self.run(&["rebase", "--end-of-options", onto]);
         if !o.ok() {
             if self.in_progress().as_deref() == Some("rebase") {
                 return self.finish(false, Some(notice("error", "n.conflicts", &[("op", "rebase")], &["rebaseAbort"])));
@@ -794,8 +834,9 @@ impl Repo {
     }
 
     pub fn reset(&mut self, sha: &str, mode: &str) -> OpResult {
+        if let Some(r) = self.reject_options(&[sha]) { return r; }
         let flag = if mode == "hard" { "--hard" } else if mode == "soft" { "--soft" } else { "--mixed" };
-        let o = self.run(&["reset", flag, sha]);
+        let o = self.run(&["reset", flag, "--end-of-options", sha]);
         if !o.ok() { return self.fail(&o); }
         let b = self.current_branch().unwrap_or_else(|| "HEAD".into());
         let short = self.raw(&["rev-parse", "--short=7", sha]).stdout.trim().to_string();
@@ -804,8 +845,9 @@ impl Repo {
     }
 
     pub fn cherry_pick(&mut self, sha: &str) -> OpResult {
+        if let Some(r) = self.reject_options(&[sha]) { return r; }
         let short = self.raw(&["rev-parse", "--short=7", sha]).stdout.trim().to_string();
-        let o = self.run(&["cherry-pick", sha]);
+        let o = self.run(&["cherry-pick", "--end-of-options", sha]);
         if !o.ok() {
             if self.in_progress().as_deref() == Some("cherry-pick") {
                 return self.finish(false, Some(notice("error", "n.conflicts", &[("op", "cherry-pick")], &["cherryAbort"])));
@@ -817,8 +859,9 @@ impl Repo {
     }
 
     pub fn revert(&mut self, sha: &str) -> OpResult {
+        if let Some(r) = self.reject_options(&[sha]) { return r; }
         let short = self.raw(&["rev-parse", "--short=7", sha]).stdout.trim().to_string();
-        let o = self.run(&["revert", "--no-edit", sha]);
+        let o = self.run(&["revert", "--no-edit", "--end-of-options", sha]);
         if !o.ok() {
             if self.in_progress().as_deref() == Some("revert") {
                 return self.finish(false, Some(notice("error", "n.conflicts", &[("op", "revert")], &["revertAbort"])));
@@ -836,7 +879,12 @@ impl Repo {
     }
 
     pub fn tag(&mut self, name: &str, sha: &str, msg: &str) -> OpResult {
-        let o = if msg.is_empty() { self.run(&["tag", name, sha]) } else { self.run(&["tag", "-a", name, "-m", msg, sha]) };
+        if let Some(r) = self.reject_options(&[name, sha]) { return r; }
+        let o = if msg.is_empty() {
+            self.run(&["tag", "--end-of-options", name, sha])
+        } else {
+            self.run(&["tag", "-a", "-m", msg, "--end-of-options", name, sha])
+        };
         if !o.ok() { return self.fail(&o); }
         let short = self.raw(&["rev-parse", "--short=7", sha]).stdout.trim().to_string();
         self.finish(true, Some(notice("ok", "n.tagCreated", &[("t", name), ("sha", &short)], &[])))
@@ -853,6 +901,7 @@ impl Repo {
     }
 
     pub fn stash_apply(&mut self, id: &str, pop: bool) -> OpResult {
+        if let Some(r) = self.reject_options(&[id]) { return r; }
         let o = self.run(&["stash", if pop { "pop" } else { "apply" }, id]);
         if !o.ok() {
             if o.stdout.contains("CONFLICT") {
@@ -864,31 +913,35 @@ impl Repo {
     }
 
     pub fn stash_drop(&mut self, id: &str) -> OpResult {
+        if let Some(r) = self.reject_options(&[id]) { return r; }
         let o = self.run(&["stash", "drop", id]);
         if !o.ok() { return self.fail(&o); }
         self.finish(true, Some(notice("ok", "n.dropped", &[("s", id)], &[])))
     }
 
     pub fn worktree_add(&mut self, path: &str, branch: &str, from: &str) -> OpResult {
-        let o = self.run(&["worktree", "add", "-b", branch, path, from]);
+        if let Some(r) = self.reject_options(&[path, branch, from]) { return r; }
+        let o = self.run(&["worktree", "add", "-b", branch, "--end-of-options", path, from]);
         if !o.ok() { return self.fail(&o); }
         self.finish(true, Some(notice("ok", "n.worktree", &[("p", path)], &[])))
     }
 
     pub fn worktree_remove(&mut self, path: &str) -> OpResult {
-        let o = self.run(&["worktree", "remove", path]);
+        if let Some(r) = self.reject_options(&[path]) { return r; }
+        let o = self.run(&["worktree", "remove", "--end-of-options", path]);
         if !o.ok() { return self.fail(&o); }
         self.finish(true, None)
     }
 
     pub fn submodule_add(&mut self, url: &str, path: &str) -> OpResult {
-        let o = self.run(&["submodule", "add", url, path]);
+        if let Some(r) = self.reject_options(&[url, path]) { return r; }
+        let o = self.run(&["submodule", "add", "--", url, path]);
         if !o.ok() { return self.fail(&o); }
         self.finish(true, Some(notice("ok", "n.submodule", &[("p", path)], &[])))
     }
 
     pub fn submodule_remove(&mut self, path: &str) -> OpResult {
-        let o = self.run(&["rm", "-f", path]);
+        let o = self.run(&["rm", "-f", "--", path]);
         if !o.ok() { return self.fail(&o); }
         self.finish(true, None)
     }
@@ -935,6 +988,7 @@ impl Repo {
     }
 
     pub fn pr_create(&mut self, source: &str, target: &str, title: &str, body: &str, draft: bool) -> OpResult {
+        if let Some(r) = self.reject_options(&[source, target]) { return r; }
         let mut args = vec!["pr", "create", "--head", source, "--base", target, "--title", title, "--body", body];
         if draft { args.push("--draft"); }
         match self.gh(&args) {
@@ -966,22 +1020,41 @@ impl Repo {
 // Repository creation (no repo yet, so these are free functions)
 // ---------------------------------------------------------------------------
 
+/// The UI's default folders look like "~/src"; no shell expands them for us.
+fn expand_home(p: &str) -> PathBuf {
+    match (p.strip_prefix('~'), std::env::var_os("HOME")) {
+        (Some(rest), Some(home)) if rest.is_empty() || rest.starts_with('/') => {
+            PathBuf::from(home).join(rest.trim_start_matches('/'))
+        }
+        _ => PathBuf::from(p),
+    }
+}
+
 pub fn clone(url: &str, dest: &str) -> Result<(String, OpResult), String> {
-    let parent = Path::new(dest).parent().map(Path::to_path_buf).unwrap_or_else(|| PathBuf::from("."));
-    std::fs::create_dir_all(&parent).map_err(|e| e.to_string())?;
+    let dest = expand_home(dest);
+    let name = dest.file_name().ok_or_else(|| format!("invalid destination: {}", dest.display()))?.to_owned();
+    let parent = dest.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or(Path::new("."));
+    std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    let parent = std::fs::canonicalize(parent).map_err(|e| e.to_string())?;
+    let dest = parent.join(&name);
+    let dest_str = dest.to_string_lossy().into_owned();
     let mut r = Repo { dir: parent, log: Vec::new() };
-    let o = r.run(&["clone", "--progress", url, dest]);
+    let o = r.run(&["clone", "--progress", "--", url, &dest_str]);
     if !o.ok() {
         return Ok((String::new(), r.fail(&o)));
     }
-    let name = Path::new(dest).file_name().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+    let name = name.to_string_lossy().into_owned();
     let res = r.finish(true, Some(notice("ok", "n.cloned", &[("r", &name)], &[])));
-    Ok((dest.to_string(), res))
+    Ok((dest_str, res))
 }
 
 pub fn init(dest: &str, default_branch: &str, readme: bool) -> Result<(String, OpResult), String> {
-    std::fs::create_dir_all(dest).map_err(|e| e.to_string())?;
-    let mut r = Repo { dir: PathBuf::from(dest), log: Vec::new() };
+    let dest = expand_home(dest);
+    std::fs::create_dir_all(&dest).map_err(|e| e.to_string())?;
+    let dest = std::fs::canonicalize(&dest).map_err(|e| e.to_string())?;
+    let mut r = Repo { dir: dest.clone(), log: Vec::new() };
+    let dest = dest.to_string_lossy().into_owned();
+    let dest = dest.as_str();
     let o = r.run(&["init", "-b", default_branch]);
     if !o.ok() {
         return Ok((String::new(), r.fail(&o)));
@@ -1007,6 +1080,10 @@ pub fn init(dest: &str, default_branch: &str, readme: bool) -> Result<(String, O
 /// GitDesk fixes it (see github.rs); an SSH key it can't help with. The SSH check
 /// wants "Permission denied (publickey…)" — a bare "Permission denied" is usually
 /// a file-system error.
+fn looks_like_option(s: &str) -> bool {
+    s.starts_with('-')
+}
+
 fn auth_notice(o: &Out) -> Option<Notice> {
     let e = &o.stderr;
     let https = e.contains("Authentication failed") || e.contains("could not read Username") || e.contains("could not read Password");
@@ -1262,6 +1339,46 @@ mod tests {
         fs::write(dest.join("new.txt"), "hello\n").unwrap();
         assert!(r.diff("README.md", "work", false).contains("+more"));
         assert!(r.diff("new.txt", "work", true).contains("+hello"));
+    }
+
+    #[test]
+    fn refs_that_look_like_options_are_rejected() {
+        let (_tmp, _origin, work) = setup();
+        let evil = "--exec=touch${IFS}pwned";
+        sh(&work, &["update-ref", &format!("refs/tags/{evil}"), "HEAD"]);
+        let mut r = Repo::open(work.to_str().unwrap()).unwrap();
+        assert!(!r.rebase(evil).ok);
+        assert!(!r.merge(evil).ok);
+        assert!(!r.checkout(evil, "tag").ok);
+        assert!(!r.tag("--output=x", "HEAD", "").ok);
+        assert!(r.compare_files("--output=x", "HEAD").is_empty());
+        assert!(!work.join("pwned").exists());
+        assert!(!work.join("x").exists());
+        // a nested local branch may legitimately have a component starting with '-'
+        sh(&work, &["branch", "feature/-x"]);
+        assert!(r.checkout("feature/-x", "local").ok);
+    }
+
+    #[test]
+    fn commit_diff_of_a_rename_shows_the_change() {
+        let (_tmp, _origin, work) = setup();
+        sh(&work, &["mv", "a.txt", "b.txt"]);
+        fs::write(work.join("b.txt"), "one\ntwo\n").unwrap();
+        sh(&work, &["commit", "-am", "rename"]);
+        let r = Repo::open(work.to_str().unwrap()).unwrap();
+        let sha = r.raw(&["rev-parse", "HEAD"]).stdout.trim().to_string();
+        let d = r.diff("b.txt", &sha, false);
+        assert!(d.contains("rename from a.txt"), "{d}");
+        assert!(d.contains("+two") && !d.contains("+one"), "{d}");
+    }
+
+    #[test]
+    fn home_is_expanded_in_destinations() {
+        let home = std::env::var("HOME").unwrap();
+        assert_eq!(expand_home("~/src/x"), PathBuf::from(&home).join("src/x"));
+        assert_eq!(expand_home("~"), PathBuf::from(&home));
+        assert_eq!(expand_home("~bob/x"), PathBuf::from("~bob/x"));
+        assert_eq!(expand_home("/abs/x"), PathBuf::from("/abs/x"));
     }
 
     #[test]

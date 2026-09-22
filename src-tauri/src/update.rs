@@ -7,8 +7,18 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const REPO_URL: &str = "https://github.com/AlejandroXV5/LINUX-GITHUB-DESKTOP.git";
-const REPO_API: &str = "https://api.github.com/repos/AlejandroXV5/LINUX-GITHUB-DESKTOP/commits/main";
-pub(crate) const INSTALL_PATH: &str = "/usr/local/bin/gitdesk";
+const REPO_API: &str = "https://api.github.com/repos/AlejandroXV5/LINUX-GITHUB-DESKTOP";
+const FALLBACK_INSTALL_PATH: &str = "/usr/local/bin/gitdesk";
+
+/// Where the running binary lives (/usr/bin for deb/rpm, /usr/local/bin for
+/// install.sh's fallback), so the restart relaunches the new build.
+pub(crate) fn install_path() -> String {
+    std::env::current_exe()
+        .ok()
+        .map(|p| p.to_string_lossy().trim_end_matches(" (deleted)").to_string())
+        .filter(|p| p.starts_with("/usr/"))
+        .unwrap_or_else(|| FALLBACK_INSTALL_PATH.to_string())
+}
 
 fn current_commit() -> Option<&'static str> {
     let sha = env!("GITDESK_COMMIT");
@@ -39,14 +49,19 @@ fn needs_update(current: &str, latest_sha: &str, message: &str) -> Option<Update
 pub fn check() -> Result<Option<UpdateInfo>, String> {
     let Some(current) = current_commit() else { return Ok(None) };
     let Some(token) = crate::github::token() else { return Ok(None) };
-    let (code, body) = crate::github::http_get(REPO_API, Some(&token))?;
+    let (code, body) = crate::github::http_get(&format!("{REPO_API}/commits/main"), Some(&token))?;
     let v: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
     if code != 200 {
         return Err(format!("GitHub API {code}: {}", v["message"].as_str().unwrap_or("request failed")));
     }
     let latest = v["sha"].as_str().unwrap_or_default();
     let message = v["commit"]["message"].as_str().unwrap_or_default();
-    Ok(needs_update(current, latest, message))
+    let Some(info) = needs_update(current, latest, message) else { return Ok(None) };
+    // Only offer main when it's strictly ahead of this build: a feature-branch or
+    // unpushed build (404, "behind", "diverged") would otherwise be downgraded.
+    let (code, body) = crate::github::http_get(&format!("{REPO_API}/compare/{current}...{latest}"), Some(&token))?;
+    let v: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
+    Ok((code == 200 && v["status"].as_str() == Some("ahead")).then_some(info))
 }
 
 /// A private checkout the updater manages itself — independent of wherever (if
@@ -80,7 +95,7 @@ fn run(progress: &dyn Fn(&str), dir: &Path, program: &str, args: &[&str]) -> Res
 }
 
 /// Pulls the latest `main` into the managed checkout, rebuilds the release binary
-/// and installs it to /usr/local/bin via `pkexec` (a graphical root prompt — no
+/// and installs it over the running binary via `pkexec` (a graphical root prompt — no
 /// terminal needed). Runs on a blocking thread; `progress` reports each phase.
 pub fn install(progress: impl Fn(&str)) -> Result<(), String> {
     let dir = checkout_dir();
@@ -109,7 +124,7 @@ pub fn install(progress: impl Fn(&str)) -> Result<(), String> {
 
     progress("Instalando — se te pedirá tu contraseña…");
     let bin = bin.to_str().ok_or("ruta de binario inválida")?;
-    run(&progress, &dir, "pkexec", &["install", "-m755", bin, INSTALL_PATH])?;
+    run(&progress, &dir, "pkexec", &["install", "-m755", bin, &install_path()])?;
 
     Ok(())
 }

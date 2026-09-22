@@ -35,5 +35,6 @@ export function webUrl(remote: string): string {
   let u = remote.trim().replace(/\.git$/, '');
   const ssh = /^(?:ssh:\/\/)?git@([^:/]+)[:/](.+)$/.exec(u);
   if (ssh) u = `https://${ssh[1]}/${ssh[2]}`;
-  return u.replace(/^http:\/\//, 'https://');
+  // drop embedded credentials (https://user:token@host) so they never reach logs or browser history
+  return u.replace(/^https?:\/\/[^@/]*@/, 'https://').replace(/^http:\/\//, 'https://');
 }
