@@ -34,13 +34,13 @@ Arch: `sudo pacman -S webkit2gtk-4.1 base-devel curl wget file openssl appmenu-g
 
 ## Instalar en Linux (un comando)
 
-Desde la carpeta del proyecto, con tu usuario normal (pedirá `sudo`):
+Con tu usuario normal (pedirá `sudo`):
 
 ```bash
-bash install.sh
+git clone https://github.com/AlejandroXV5/LINUX-GitDesk.git ~/gitdesk && bash ~/gitdesk/install.sh
 ```
 
-Instala los paquetes del sistema (apt, dnf o pacman), Node y Rust si faltan, compila GitDesk, lo instala (.deb en Ubuntu/Debian, .rpm en Fedora, binario + lanzador en Arch) y configura Git Credential Manager para *Iniciar sesión* con GitHub. Se puede volver a ejecutar para actualizar.
+Instala los paquetes del sistema (apt, dnf o pacman), Node y Rust si faltan, compila GitDesk, lo instala (.deb en Ubuntu/Debian, .rpm en Fedora, binario + lanzador en Arch) y configura Git Credential Manager para *Iniciar sesión* con GitHub. Al instalarlo desde un clon, GitDesk avisa cuando hay una versión nueva y se actualiza solo. Si ya tienes la carpeta, `bash ~/gitdesk/install.sh` vuelve a instalar.
 
 ## Empezar
 
@@ -127,4 +127,8 @@ La lista completa está en *Help → Keyboard shortcuts*.
 
 ## Licencia
 
-Todos los derechos reservados — ver [LICENSE](LICENSE). El código es público solo para consulta: no se permite copiarlo, modificarlo, redistribuirlo ni usarlo sin permiso escrito del autor.
+Licencia de uso propia — ver [LICENSE](LICENSE). En resumen:
+
+- **Puedes** instalar GitDesk desde este repositorio y usarlo gratis, en casa o en el trabajo, y cambiar sus preferencias desde el menú **Opciones**.
+- **No puedes** modificar el código ni sus archivos de configuración, usar versiones modificadas, ni redistribuir o vender GitDesk. Para compartirlo, comparte el enlace a este repositorio.
+- **Mejoras y configuraciones** se le proponen al autor con un Issue o un Pull Request: ver [CONTRIBUTING.md](CONTRIBUTING.md).

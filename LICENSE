@@ -1,24 +1,105 @@
-Copyright (c) 2026 Alejandro Bolaños Chinchilla
-Todos los derechos reservados. / All rights reserved.
+Licencia de uso de GitDesk / GitDesk Use License
+Copyright (c) 2026 Alejandro Bolaños Chinchilla. Todos los derechos reservados salvo
+lo que esta licencia permite expresamente. / All rights reserved except as this
+license expressly permits.
 
+========================================================================
 ESPAÑOL
+========================================================================
 
-Este código fuente se publica únicamente para que pueda consultarse. No se
-concede ninguna licencia: queda prohibido copiar, modificar, distribuir,
-sublicenciar, vender o usar este software, total o parcialmente, sin el
-permiso previo y por escrito del titular de los derechos.
+1. Lo que puedes hacer
+   Cualquier persona puede, sin costo:
+   a) descargar o clonar este repositorio y compilar el código sin modificarlo,
+      únicamente para instalar GitDesk en sus propios equipos (por ejemplo, con
+      install.sh);
+   b) usar GitDesk para cualquier fin, personal o laboral;
+   c) actualizarlo con el actualizador integrado o volviendo a instalarlo desde
+      este repositorio;
+   d) cambiar las preferencias de la aplicación desde su propia interfaz (menú
+      Opciones);
+   e) compartir el enlace a este repositorio.
 
-La única excepción es lo que los Términos de Servicio de GitHub permiten a
-los usuarios de GitHub en repositorios públicos (ver el código y hacer un
-fork dentro de GitHub); esa excepción no concede ningún otro derecho.
+2. Lo que no puedes hacer
+   Sin el permiso previo y por escrito del titular, no puedes:
+   a) modificar el código fuente ni sus archivos de configuración (por ejemplo,
+      tauri.conf.json, package.json o Cargo.toml), ni usar versiones
+      modificadas;
+   b) crear obras derivadas ni incorporar partes del código en otros proyectos;
+   c) distribuir, publicar, vender, alquilar ni sublicenciar el software o
+      copias de él, modificadas o no, ni en código fuente ni compilado. Quien
+      quiera GitDesk debe obtenerlo de este repositorio;
+   d) quitar o alterar este aviso de licencia o de derechos de autor.
 
+3. Mejoras, configuraciones y sugerencias
+   Las mejoras, correcciones y cambios de configuración se proponen al titular,
+   que decide si se incorporan: abre un Issue en este repositorio o envía un
+   Pull Request (ver CONTRIBUTING.md). Solo para preparar un Pull Request
+   dirigido a este repositorio puedes modificar tu fork dentro de GitHub; esa
+   versión modificada no puede usarse ni distribuirse de ninguna otra forma.
+   Al enviar una propuesta, autorizas al titular a usarla, modificarla,
+   incorporarla y publicarla en GitDesk, sin obligación ni compensación.
+
+4. GitHub
+   Los Términos de Servicio de GitHub permiten además a sus usuarios ver este
+   repositorio y hacer fork dentro de GitHub; eso no concede ningún otro
+   derecho.
+
+5. Sin garantía
+   El software se entrega "tal cual", sin garantías de ningún tipo. El titular
+   no es responsable de ningún daño derivado de su uso.
+
+6. Terminación
+   Si incumples esta licencia, los permisos del punto 1 terminan
+   automáticamente.
+
+Si las versiones en español e inglés difieren, prevalece la española.
+
+========================================================================
 ENGLISH
+========================================================================
 
-This source code is published for viewing only. No license is granted: you
-may not copy, modify, distribute, sublicense, sell or use this software, in
-whole or in part, without the prior written permission of the copyright
-holder.
+1. What you may do
+   Anyone may, free of charge:
+   a) download or clone this repository and build the code unmodified, solely
+      to install GitDesk on their own computers (for example, with
+      install.sh);
+   b) use GitDesk for any purpose, personal or professional;
+   c) update it with the built-in updater or by reinstalling it from this
+      repository;
+   d) change the application's preferences from its own interface (the
+      Options menu);
+   e) share the link to this repository.
 
-The only exception is what GitHub's Terms of Service allow GitHub users to do
-with public repositories (view the code and fork it within GitHub); that
-exception grants no other rights.
+2. What you may not do
+   Without the copyright holder's prior written permission, you may not:
+   a) modify the source code or its configuration files (for example,
+      tauri.conf.json, package.json or Cargo.toml), or use modified versions;
+   b) create derivative works or incorporate any part of the code into other
+      projects;
+   c) distribute, publish, sell, rent or sublicense the software or copies of
+      it, modified or not, in source or compiled form. Anyone who wants
+      GitDesk must get it from this repository;
+   d) remove or alter this license or copyright notice.
+
+3. Improvements, configuration changes and suggestions
+   Improvements, fixes and configuration changes are proposed to the copyright
+   holder, who decides whether to include them: open an Issue in this
+   repository or send a Pull Request (see CONTRIBUTING.md). Solely to prepare
+   a Pull Request to this repository you may modify your fork within GitHub;
+   that modified version may not be used or distributed in any other way. By
+   submitting a proposal you allow the copyright holder to use, modify,
+   include and publish it in GitDesk, without obligation or compensation.
+
+4. GitHub
+   GitHub's Terms of Service additionally allow its users to view this
+   repository and fork it within GitHub; that grants no other rights.
+
+5. No warranty
+   The software is provided "as is", without warranty of any kind. The
+   copyright holder is not liable for any damages arising from its use.
+
+6. Termination
+   If you breach this license, the permissions in section 1 end
+   automatically.
+
+If the Spanish and English versions differ, the Spanish version prevails.
