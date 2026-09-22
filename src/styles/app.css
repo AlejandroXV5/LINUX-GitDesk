@@ -390,7 +390,7 @@ kbd{font-family:var(--font-mono);font-size:11px;padding:1px 6px;border:1px solid
 /* welcome screen */
 .welcome{display:none;position:absolute;inset:0;z-index:5;background:var(--surface-100);overflow:auto;padding:32px 16px}
 .app.no-repo .welcome{display:flex;justify-content:center;align-items:flex-start}
-.app.no-repo .leftcol,.app.no-repo .dock{visibility:hidden}
+.app.no-repo .leftcol,.app.no-repo .dock,.app.no-repo .resize-handle{visibility:hidden}
 .wl-card{width:min(640px,100%);display:flex;flex-direction:column;gap:16px;margin-top:6vh}
 .wl-head{display:flex;gap:14px;align-items:center}
 .wl-head h1{margin:0;font-size:22px;font-weight:600}

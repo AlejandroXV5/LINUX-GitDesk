@@ -226,10 +226,11 @@ function wireResize(handle: HTMLElement, panel: HTMLElement, min: number, max: n
     const onUp = () => {
       handle.classList.remove('active');
       handle.removeEventListener('pointermove', onMove);
-      handle.removeEventListener('pointerup', onUp);
+      handle.removeEventListener('lostpointercapture', onUp);
       saveSettings();
     };
     handle.addEventListener('pointermove', onMove);
-    handle.addEventListener('pointerup', onUp);
+    // fires on pointerup and also on pointercancel, so 'active' can't get stuck
+    handle.addEventListener('lostpointercapture', onUp);
   });
 }
