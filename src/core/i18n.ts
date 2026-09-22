@@ -3,7 +3,7 @@
 // Add a language by adding a sibling object with the same keys.
 export const L: Record<string, Record<string, string>> = {
 en: {
- 'm.file':'File','m.edit':'Edit','m.view':'View','m.git':'Git','m.tools':'Tools','m.help':'Help',
+ 'm.file':'File','m.edit':'Edit','m.view':'View','m.git':'Git','m.tools':'Settings','m.help':'Help',
  'f.newRepo':'New Repository…','f.clone':'Clone Repository…','f.open':'Open Repository','f.exit':'Exit',
  'e.undoCommit':'Undo Last Commit','e.stageAll':'Stage All Changes','e.discardAll':'Discard All Changes','e.findHistory':'Find in History','e.copyBranch':'Copy Branch Name',
  'v.sidebar':'Branches Sidebar','v.dock':'Git Changes','v.output':'Output','v.allBranches':'Show All Branches in History','v.tags':'Show Tags in History','v.relDates':'Relative Dates','v.theme':'Theme','v.lang':'Language',
@@ -54,7 +54,7 @@ en: {
  'upd.available':'A GitDesk update is available — {msg}.','upd.update':'Update','upd.title':'Update GitDesk','upd.body':'A new version is available: “{msg}”. This pulls the latest source, rebuilds it and reinstalls it — it can take a few minutes and will ask for your password once, at the end.','upd.updateBtn':'Update now','upd.updating':'Updating…','upd.done':'Updated. Restart GitDesk to use the new version.','upd.restart':'Restart now'
 },
 es: {
- 'm.file':'Archivo','m.edit':'Editar','m.view':'Ver','m.git':'Git','m.tools':'Herramientas','m.help':'Ayuda',
+ 'm.file':'Archivo','m.edit':'Editar','m.view':'Ver','m.git':'Git','m.tools':'Configuración','m.help':'Ayuda',
  'f.newRepo':'Nuevo repositorio…','f.clone':'Clonar repositorio…','f.open':'Abrir repositorio','f.exit':'Salir',
  'e.undoCommit':'Deshacer último commit','e.stageAll':'Hacer stage de todos los cambios','e.discardAll':'Descartar todos los cambios','e.findHistory':'Buscar en el historial','e.copyBranch':'Copiar nombre de la rama',
  'v.sidebar':'Barra de ramas','v.dock':'Git Changes','v.output':'Salida','v.allBranches':'Mostrar todas las ramas en el historial','v.tags':'Mostrar etiquetas en el historial','v.relDates':'Fechas relativas','v.theme':'Tema','v.lang':'Idioma',
