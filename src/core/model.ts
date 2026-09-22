@@ -31,6 +31,8 @@ export interface Snapshot {
   truncated?: boolean;
 }
 export interface PullRequest { id: number; title: string; desc: string; source: string; target: string; status: string; t: number }
+/** An open GitHub issue, for the "#" picker in Git Changes. */
+export interface Issue { number: number; title: string }
 export interface Notice { kind: string; key: string; vars: Record<string, string>; actions: string[] }
 export interface LogEntry { cmd: string; lines: string[]; err: boolean }
 export interface OpResult { ok: boolean; notice?: Notice | null; log: LogEntry[] }
@@ -51,6 +53,9 @@ export interface UiState {
   msg: string;
   prs: PullRequest[];
   prError: string | null;
+  /** Open issues of the GitHub repository; null until loaded (or when origin isn't on GitHub). */
+  issues: Issue[] | null;
+  issuesError: string | null;
   filesCache: Map<string, FileChange[]>;
 }
 export type RepoView = Snapshot & UiState;
@@ -62,7 +67,7 @@ function freshUi(): UiState {
   return {
     extra: new Set(), historyRef: null, showAll: false, showTags: true, selected: null, selRef: null,
     openFolders: new Set(['remotes', 'tags']), secClosed: new Set(['sub']), dockClosed: new Set(),
-    incOpen: true, notice: null, related: [], msg: '', prs: [], prError: null, filesCache: new Map()
+    incOpen: true, notice: null, related: [], msg: '', prs: [], prError: null, issues: null, issuesError: null, filesCache: new Map()
   };
 }
 /** Replace the repository data; UI state is kept when it's the same repository. */
@@ -80,8 +85,8 @@ export function setRepo(snap: Snapshot | null) {
   R.extra.forEach(x => { if (!resolve(x)) R.extra.delete(x); });
 }
 function pickUi(v: RepoView): UiState {
-  const { extra, historyRef, showAll, showTags, selected, selRef, openFolders, secClosed, dockClosed, incOpen, notice, related, msg, prs, prError, filesCache } = v;
-  return { extra, historyRef, showAll, showTags, selected, selRef, openFolders, secClosed, dockClosed, incOpen, notice, related, msg, prs, prError, filesCache };
+  const { extra, historyRef, showAll, showTags, selected, selRef, openFolders, secClosed, dockClosed, incOpen, notice, related, msg, prs, prError, issues, issuesError, filesCache } = v;
+  return { extra, historyRef, showAll, showTags, selected, selRef, openFolders, secClosed, dockClosed, incOpen, notice, related, msg, prs, prError, issues, issuesError, filesCache };
 }
 
 // ---------- graph queries ----------

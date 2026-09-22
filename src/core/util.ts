@@ -38,3 +38,9 @@ export function webUrl(remote: string): string {
   // drop embedded credentials (https://user:token@host) so they never reach logs or browser history
   return u.replace(/^https?:\/\/[^@/]*@/, 'https://').replace(/^http:\/\//, 'https://');
 }
+
+/** `owner/name` when the remote is on github.com, else null. */
+export function githubRepo(remote: string): string | null {
+  const m = /^https:\/\/github\.com\/([\w.-]+\/[\w.-]+?)\/?$/.exec(webUrl(remote));
+  return m ? m[1] : null;
+}

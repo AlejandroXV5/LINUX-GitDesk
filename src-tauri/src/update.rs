@@ -43,23 +43,11 @@ fn needs_update(current: &str, latest_sha: &str, message: &str) -> Option<Update
     Some(UpdateInfo { current: current[..current.len().min(7)].to_string(), latest: latest_sha[..7].to_string(), message })
 }
 
-/// GET from the GitHub API. The repo is public, so no credential is needed; git's
-/// saved github.com token is still sent when there is one (a higher rate limit than
-/// 60 requests/hour), and dropped if GitHub rejects it.
-fn api_get(url: &str) -> Result<(u16, serde_json::Value), String> {
-    let token = crate::github::token();
-    let (mut code, mut body) = crate::github::http_get(url, token.as_deref())?;
-    if code == 401 && token.is_some() {
-        (code, body) = crate::github::http_get(url, None)?;
-    }
-    Ok((code, serde_json::from_slice(&body).unwrap_or_default()))
-}
-
 /// `Ok(None)` when already up to date, or when this binary wasn't built from a git
 /// checkout (e.g. a source tarball) and so doesn't know which commit it is.
 pub fn check() -> Result<Option<UpdateInfo>, String> {
     let Some(current) = current_commit() else { return Ok(None) };
-    let (code, v) = api_get(&format!("{REPO_API}/commits/main"))?;
+    let (code, v) = crate::github::api_get(&format!("{REPO_API}/commits/main"))?;
     if code != 200 {
         return Err(format!("GitHub API {code}: {}", v["message"].as_str().unwrap_or("request failed")));
     }
@@ -68,7 +56,7 @@ pub fn check() -> Result<Option<UpdateInfo>, String> {
     let Some(info) = needs_update(current, latest, message) else { return Ok(None) };
     // Only offer main when it's strictly ahead of this build: a feature-branch or
     // unpushed build (404, "behind", "diverged") would otherwise be downgraded.
-    let (code, v) = api_get(&format!("{REPO_API}/compare/{current}...{latest}"))?;
+    let (code, v) = crate::github::api_get(&format!("{REPO_API}/compare/{current}...{latest}"))?;
     Ok((code == 200 && v["status"].as_str() == Some("ahead")).then_some(info))
 }
 

@@ -8,7 +8,7 @@ import { S, locale, t } from '../core/settings';
 import { $, $$, baseOf, dirOf, esc, firstLine, s7, short } from '../core/util';
 import { setWindowTitle } from '../backend/tauri';
 import { OUT, busy, isNarrow } from './core';
-import { B, P, isDemo, recent } from './session';
+import { B, P, canLinkIssues, isDemo, recent } from './session';
 import { account, accountPic, renderAccount, signingIn } from './account';
 
 export function renderAll(){
@@ -346,8 +346,10 @@ export function renderDock(){
   ($('#commitBtn') as HTMLButtonElement).disabled = !!busy || !($('#commitMsg') as HTMLTextAreaElement).value.trim() || (!R.work.length && !amend);
   const sec = (key: string, label: string, count: number | null, tools = '') => { const open = !R.dockClosed.has(key); return `<div class="csec-h${open ? ' open' : ''}"><button class="tog" data-dsec="${key}" aria-expanded="${open}">${svg('chev', 'chev')}<span>${esc(label)}</span>${count != null ? `<span class="n">(${count})</span>` : ''}</button>${tools}</div>`; };
   let h = '';
-  h += sec('rel', t('dk.related'), R.related.length || null);
-  if (!R.dockClosed.has('rel')) h += R.related.length ? R.related.map(id => `<div class="relrow"><span class="id">#${id}</span><span class="lbl">${esc(ISSUES.find(x => x.id === id)?.title || '')}</span><button class="icon-btn" data-unrel="${id}" title="${esc(t('dk.removeLink'))}">${svg('x')}</button></div>`).join('') : `<div class="cempty">${esc(t('dk.noRelated'))}</div>`;
+  const linkable = canLinkIssues();
+  $('#hashBtn').hidden = !linkable;
+  if (linkable) h += sec('rel', t('dk.related'), R.related.length || null);
+  if (linkable && !R.dockClosed.has('rel')) h += R.related.length ? R.related.map(id => `<div class="relrow"><span class="id">#${id}</span><span class="lbl">${esc(R.issues?.find(x => x.number === id)?.title || '')}</span><button class="icon-btn" data-unrel="${id}" title="${esc(t('dk.removeLink'))}">${svg('x')}</button></div>`).join('') : `<div class="cempty">${esc(t('dk.noRelated'))}</div>`;
   if (staged.length){
     h += sec('staged', t('dk.staged'), staged.length, `<button class="icon-btn" data-dtool="unstageAll" title="${esc(t('dk.unstageAll'))}">${svg('minus')}</button>`);
     if (!R.dockClosed.has('staged')) h += staged.map(f => fileRowHtml(f, 'staged')).join('');
@@ -358,15 +360,6 @@ export function renderDock(){
   if (!R.dockClosed.has('stash')) h += R.stashes.length ? R.stashes.map(s => `<div class="frow stash" data-stash="${esc(s.id)}" title="${esc(s.msg)}">${svg('stash')}<span class="fname"><span class="n1">${esc(s.id)}</span><span class="n2">${esc(s.msg)}</span></span><span class="ractions"><button class="icon-btn" data-sact="apply" title="${esc(t('dk.apply'))}">${svg('check')}</button><button class="icon-btn" data-sact="pop" title="${esc(t('dk.pop'))}">${svg('up')}</button><button class="icon-btn" data-sact="drop" title="${esc(t('dk.drop'))}">${svg('trash')}</button></span></div>`).join('') : `<div class="cempty">${esc(t('dk.noStashes'))}</div>`;
   const cs = $('#changesScroll'), st = cs.scrollTop; cs.innerHTML = h; cs.scrollTop = st;
 }
-/** Work items for the # picker. Replace with your tracker (GitHub Issues, Jira…). */
-export const ISSUES = [
-  { id: 58, title: 'Token expiry is not refreshed after sleep' },
-  { id: 61, title: 'OAuth login flow' },
-  { id: 64, title: 'Rate-limit fetches against origin' },
-  { id: 66, title: 'Sidebar filter loses focus on refresh' },
-  { id: 71, title: 'Spanish translation for the UI' }
-];
-
 // ---------- status bar & output ----------
 export function renderStatus(){
   $('#sbState').innerHTML = busy ? `<span class="spinner"></span><span>${esc(t(busy))}</span>` : `<span>${esc(t('st.ready'))}</span>`;

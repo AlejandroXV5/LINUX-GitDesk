@@ -43,6 +43,13 @@ pub struct Repo {
     pub description: String,
 }
 
+/// An open issue, for the "#" picker in Git Changes.
+#[derive(Serialize, Debug, Clone, PartialEq)]
+pub struct Issue {
+    pub number: u64,
+    pub title: String,
+}
+
 #[derive(Debug, PartialEq)]
 struct Credential {
     username: String,
@@ -128,6 +135,52 @@ pub fn list_repos() -> Result<Vec<Repo>, String> {
 fn repo_from(v: &serde_json::Value) -> Repo {
     let s = |k: &str| v[k].as_str().unwrap_or_default().to_string();
     Repo { name: s("name"), full_name: s("full_name"), private: v["private"].as_bool().unwrap_or(false), clone_url: s("clone_url"), description: s("description") }
+}
+
+/// Open issues of a GitHub repository (`owner/name`), most recently updated first.
+/// Public repositories need no credential; private ones use git's github.com token.
+pub fn list_issues(repo: &str) -> Result<Vec<Issue>, String> {
+    if !valid_repo_name(repo) {
+        return Err(format!("invalid GitHub repository name: {repo}"));
+    }
+    let (code, v) = api_get(&format!("{API}/repos/{repo}/issues?state=open&sort=updated&per_page=100"))?;
+    if code != 200 {
+        return Err(format!("GitHub API {code}: {}", v["message"].as_str().unwrap_or("request failed")));
+    }
+    Ok(issues_from(&v))
+}
+
+/// The issues API also returns pull requests (they carry a `pull_request` key).
+fn issues_from(v: &serde_json::Value) -> Vec<Issue> {
+    v.as_array()
+        .map(|a| {
+            a.iter()
+                .filter(|i| i.get("pull_request").is_none())
+                .filter_map(|i| Some(Issue { number: i["number"].as_u64()?, title: i["title"].as_str().unwrap_or_default().to_string() }))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// `owner/name` made of the characters GitHub allows — it goes into an API URL.
+fn valid_repo_name(s: &str) -> bool {
+    let part = |p: Option<&str>| {
+        p.is_some_and(|p| !p.is_empty() && p != "." && p != ".." && p.chars().all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c)))
+    };
+    let mut parts = s.split('/');
+    part(parts.next()) && part(parts.next()) && parts.next().is_none()
+}
+
+/// GET from the GitHub API. git's saved github.com token is sent when there is one
+/// (private repositories need it; it also raises the 60 requests/hour limit) and
+/// dropped if GitHub rejects it — public data doesn't need a credential.
+pub(crate) fn api_get(url: &str) -> Result<(u16, serde_json::Value), String> {
+    let saved = token();
+    let (mut code, mut body) = http_get(url, saved.as_deref())?;
+    if code == 401 && saved.is_some() {
+        (code, body) = http_get(url, None)?;
+    }
+    Ok((code, serde_json::from_slice(&body).unwrap_or_default()))
 }
 
 /// `git credential <action>` for https://github.com; `fields` are extra `key=value`
@@ -312,5 +365,26 @@ mod tests {
         assert_eq!(image_mime(b"\x89PNG\r\n\x1a\n0000"), "image/png");
         assert_eq!(image_mime(b"\xff\xd8\xff\xe0"), "image/jpeg");
         assert_eq!(image_mime(b"RIFF\0\0\0\0WEBPVP8 "), "image/webp");
+    }
+
+    #[test]
+    fn issues_skip_pull_requests() {
+        let v = serde_json::json!([
+            { "number": 12, "title": "Crash on start" },
+            { "number": 13, "title": "Add dark icons", "pull_request": { "url": "…" } },
+            { "number": 14, "title": "Spanish typos" }
+        ]);
+        let got: Vec<u64> = issues_from(&v).iter().map(|i| i.number).collect();
+        assert_eq!(got, vec![12, 14]);
+        assert!(issues_from(&serde_json::json!({ "message": "Not Found" })).is_empty());
+    }
+
+    #[test]
+    fn repo_names_are_validated() {
+        assert!(valid_repo_name("AlejandroXV5/LINUX-GitDesk"));
+        assert!(valid_repo_name("org/my.repo_2"));
+        for bad in ["", "owner", "owner/", "/name", "a/b/c", "../x", "owner/..", "o/n?x=1", "o/n#x", "o/n x"] {
+            assert!(!valid_repo_name(bad), "{bad} should be rejected");
+        }
     }
 }

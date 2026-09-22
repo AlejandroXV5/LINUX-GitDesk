@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import type { Issue } from '../core/model';
 import { sleep } from '../core/util';
 import { inTauri } from './tauri';
 
@@ -36,6 +37,14 @@ const DEMO_REPOS: GhRepo[] = [
   { name: 'hello-world', fullName: 'octocat/Hello-World', private: false, cloneUrl: 'https://github.com/octocat/Hello-World.git', description: 'My first repository on GitHub!' },
   { name: 'secret-lab', fullName: 'octocat/secret-lab', private: true, cloneUrl: 'https://github.com/octocat/secret-lab.git', description: '' }
 ];
+/** Issues of the demo repository — real repositories load theirs from GitHub. */
+export const DEMO_ISSUES: Issue[] = [
+  { number: 58, title: 'Token expiry is not refreshed after sleep' },
+  { number: 61, title: 'OAuth login flow' },
+  { number: 64, title: 'Rate-limit fetches against origin' },
+  { number: 66, title: 'Sidebar filter loses focus on refresh' },
+  { number: 71, title: 'Spanish translation for the UI' }
+];
 let demoSignedIn = false;
 
 export const GitHub = {
@@ -51,5 +60,10 @@ export const GitHub = {
   async repos(): Promise<GhRepo[]> {
     if (inTauri()) return invoke<GhRepo[]>('github_repos');
     await sleep(400); return demoSignedIn ? DEMO_REPOS : [];
+  },
+  /** Open issues of `owner/name`; works signed out for public repositories. */
+  async issues(repo: string): Promise<Issue[]> {
+    if (inTauri()) return invoke<Issue[]>('github_issues', { repo });
+    await sleep(300); return DEMO_ISSUES;
   }
 };

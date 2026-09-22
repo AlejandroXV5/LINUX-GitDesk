@@ -6,8 +6,8 @@ import { $, esc } from '../core/util';
 import { act, winClose } from './actions';
 import { busy, closeMenus, confirmDlg, copyText, isNarrow, menuAnchor, popoverAt, type MenuItem } from './core';
 import { dlgAbout, dlgClone, dlgCompare, dlgDelete, dlgDiff, dlgNewBranch, dlgNewPR, dlgNewRepo, dlgNewTag, dlgOpenRepo, dlgOptions, dlgShortcuts, dlgWorktree } from './dialogs';
-import { ISSUES, renderAll, renderDock, renderLayout } from './render';
-import { B, DEMO, P, closeRepo, doOp, isDemo, openRepo, recent } from './session';
+import { renderAll, renderDock, renderLayout } from './render';
+import { B, DEMO, P, canLinkIssues, closeRepo, doOp, isDemo, loadIssues, openRepo, recent } from './session';
 
 export function repoMenuItems(): MenuItem[] {
   const items: MenuItem[] = recent().map(r => ({ label: r.name, checked: hasRepo() && R.path === r.path, icon: 'repo', action: () => openRepo(r.path) }));
@@ -210,8 +210,23 @@ export function branchPicker(anchor: HTMLElement){
   });
 }
 export function issuePicker(anchor: HTMLElement, fromTyping: boolean){
-  const el = popoverAt(anchor, `<div class="menu-h" style="padding-top:8px">${esc(t('dk.issues'))}</div><div class="pop-list">${ISSUES.map(i => `<button class="mi" data-issue="${i.id}"><span class="mi-ic issue">#${i.id}</span><span class="mi-label">${esc(i.title)}</span>${R.related.includes(i.id) ? `<span class="mi-sc">${svg('check')}</span>` : ''}</button>`).join('')}</div>`);
-  if (!fromTyping) (el.querySelector('.mi') as HTMLElement | null)?.focus();
+  if (!canLinkIssues()) return;
+  const body = () => {
+    if (R.issuesError && !R.issues) return `<div class="hint err pop-hint">${esc(t('dk.issuesError', { msg: R.issuesError }))}</div>`;
+    if (!R.issues) return `<div class="hint pop-hint">${esc(t('st.loading'))}</div>`;
+    if (!R.issues.length) return `<div class="hint pop-hint">${esc(t('dk.noIssues'))}</div>`;
+    return R.issues.map(i => `<button class="mi" data-issue="${i.number}"><span class="mi-ic issue">#${i.number}</span><span class="mi-label">${esc(i.title)}</span>${R.related.includes(i.number) ? `<span class="mi-sc">${svg('check')}</span>` : ''}</button>`).join('');
+  };
+  const el = popoverAt(anchor, `<div class="menu-h" style="padding-top:8px">${esc(t('dk.issues'))}</div><div class="pop-list">${body()}</div>`);
+  const focusFirst = () => { if (!fromTyping) (el.querySelector('.mi') as HTMLElement | null)?.focus(); };
+  focusFirst();
+  // Refresh in the background; redraw the list if it changed while the picker is open.
+  const shown = R.issues, shownError = R.issuesError;
+  loadIssues().then(() => {
+    const list = el.querySelector('.pop-list');
+    if (!el.isConnected || !list || (R.issues === shown && R.issuesError === shownError)) return;
+    list.innerHTML = body(); focusFirst();
+  });
   el.addEventListener('click', e => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-issue]'); if (!b) return;
     const id = +b.dataset.issue!, ta = $('#commitMsg') as HTMLTextAreaElement;

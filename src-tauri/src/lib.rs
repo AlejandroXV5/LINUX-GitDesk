@@ -9,7 +9,7 @@ mod github;
 mod update;
 
 use git::{CommitOptions, FileChange, OpResult, PullRequest, Repo, Snapshot};
-use github::{Account, Repo as GhRepo};
+use github::{Account, Issue, Repo as GhRepo};
 use tauri::{Emitter, Manager};
 use update::UpdateInfo;
 
@@ -245,6 +245,12 @@ async fn github_repos() -> R<Vec<GhRepo>> {
     github::list_repos()
 }
 
+/// Open issues of a GitHub repository (`owner/name`), for the "#" picker in Git Changes.
+#[tauri::command]
+async fn github_issues(repo: String) -> R<Vec<Issue>> {
+    github::list_issues(&repo)
+}
+
 /// `None` when GitDesk is already up to date with origin/main.
 #[tauri::command]
 async fn app_check_update() -> R<Option<UpdateInfo>> {
@@ -328,6 +334,7 @@ pub fn run() {
             github_sign_in,
             github_sign_out,
             github_repos,
+            github_issues,
             app_check_update,
             app_update,
             app_restart

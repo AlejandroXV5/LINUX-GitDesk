@@ -1,13 +1,14 @@
 // Which repository is open, which backend serves it, and how results flow back
 // into the UI (Output log + Git Changes info bar + refreshed snapshot).
+import { DEMO_ISSUES, GitHub } from '../backend/github';
 import { MockBackend } from '../backend/mock';
 import { TauriBackend, inTauri } from '../backend/tauri';
 import type { GitBackend } from '../backend/types';
 import { R, hasRepo, setRepo, type OpResult } from '../core/model';
 import { withPlurals } from '../core/settings';
-import { $, store } from '../core/util';
+import { $, githubRepo, store } from '../core/util';
 import { appLog, log, notice, run, toast } from './core';
-import { renderAll, renderSidebar } from './render';
+import { renderAll, renderDock, renderSidebar } from './render';
 import { t } from '../core/settings';
 
 export const DEMO = 'demo://gitdesk';
@@ -39,6 +40,7 @@ export async function openRepo(path: string, result?: OpResult){
     if (result) applyResult(result);
     renderAll();
     loadPrs();
+    loadIssues(true);
   } catch (e){
     toast(t('n.openFailed', { p: path, msg: String((e as Error)?.message ?? e) }));
     if (!inTauri() || isDemo(path)) return;
@@ -82,4 +84,25 @@ export function loadPrs(){
     if (!hasRepo() || R.path !== path) return;
     R.prs = []; R.prError = String(e); renderSidebar();
   });
+}
+
+/** Issues can be linked (#) when origin is on github.com — or in the demo repository. */
+export const canLinkIssues = () => hasRepo() && (isDemo() || githubRepo(R.url) != null);
+let issuesAt = 0, issuesPath = '';
+/** Load the open GitHub issues for the # picker; skipped when loaded less than 2 minutes ago. */
+export async function loadIssues(force = false){
+  if (!hasRepo()) return;
+  const path = P(), repo = githubRepo(R.url);
+  if (!canLinkIssues()){ R.issues = null; R.issuesError = null; return; }
+  if (!force && path === issuesPath && R.issues && Date.now() - issuesAt < 120000) return;
+  issuesPath = path; issuesAt = Date.now();
+  try {
+    const list = isDemo() || !repo ? DEMO_ISSUES : await GitHub.issues(repo);
+    if (!hasRepo() || R.path !== path) return;
+    R.issues = list; R.issuesError = null;
+  } catch (e){
+    if (!hasRepo() || R.path !== path) return;
+    issuesAt = 0; R.issuesError = String((e as Error)?.message ?? e);
+  }
+  renderDock();
 }
