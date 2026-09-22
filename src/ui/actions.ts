@@ -5,7 +5,7 @@ import { S, saveSettings, t } from '../core/settings';
 import { $, webUrl } from '../core/util';
 import { signIn } from './account';
 import { appLog, busy, confirmDlg, isNarrow, log, notice, run, setNoticeActionRunner, toast } from './core';
-import { dlgNewBranch, dlgOptions, shutdown } from './dialogs';
+import { dlgNewBranch, shutdown } from './dialogs';
 import { renderAll, renderDock, renderLayout } from './render';
 import { B, P, applyResult, doOp, isDemo, refresh } from './session';
 
@@ -43,7 +43,6 @@ export const act = {
   toggleDock(){ if (isNarrow()){ $('#app').classList.toggle('drawer-dock'); $('#app').classList.remove('drawer-sidebar'); } else { S.showDock = !S.showDock; saveSettings(); } renderLayout(); renderDock(); },
   toggleOutput(){ if (isNarrow()) $('#app').classList.toggle('drawer-output'); else { S.showOutput = !S.showOutput; saveSettings(); } renderLayout(); },
   showDock(){ if (isNarrow()){ $('#app').classList.add('drawer-dock'); $('#app').classList.remove('drawer-sidebar'); } else { S.showDock = true; saveSettings(); } renderLayout(); renderDock(); },
-  options: () => dlgOptions(),
   viewAll(){ R.historyRef = null; R.showAll = false; if (isNarrow()) $('#app').classList.remove('drawer-dock'); renderAll(); $('#graphBody').focus(); },
   stageAll: () => doOp('st.working', () => B().stage(P(), [...new Set(R.work.filter(f => !f.staged).map(f => f.path))])),
   unstageAll: () => doOp('st.working', () => B().unstage(P(), [...new Set(R.work.filter(f => f.staged).map(f => f.path))])),
