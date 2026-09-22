@@ -6,8 +6,8 @@ use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const REPO_URL: &str = "https://github.com/AlejandroXV5/LINUX-GITHUB-DESKTOP.git";
-const REPO_API: &str = "https://api.github.com/repos/AlejandroXV5/LINUX-GITHUB-DESKTOP";
+const REPO_URL: &str = "https://github.com/AlejandroXV5/LINUX-GitDesk.git";
+const REPO_API: &str = "https://api.github.com/repos/AlejandroXV5/LINUX-GitDesk";
 const FALLBACK_INSTALL_PATH: &str = "/usr/local/bin/gitdesk";
 
 /// Where the running binary lives (/usr/bin for deb/rpm, /usr/local/bin for
@@ -43,14 +43,23 @@ fn needs_update(current: &str, latest_sha: &str, message: &str) -> Option<Update
     Some(UpdateInfo { current: current[..current.len().min(7)].to_string(), latest: latest_sha[..7].to_string(), message })
 }
 
-/// `Ok(None)` when already up to date, when this binary wasn't built from a git
-/// checkout (e.g. a source tarball), or when git has no github.com credential yet —
-/// the GitDesk repo is private, so reading it needs the same token Push/Pull use.
+/// GET from the GitHub API. The repo is public, so no credential is needed; git's
+/// saved github.com token is still sent when there is one (a higher rate limit than
+/// 60 requests/hour), and dropped if GitHub rejects it.
+fn api_get(url: &str) -> Result<(u16, serde_json::Value), String> {
+    let token = crate::github::token();
+    let (mut code, mut body) = crate::github::http_get(url, token.as_deref())?;
+    if code == 401 && token.is_some() {
+        (code, body) = crate::github::http_get(url, None)?;
+    }
+    Ok((code, serde_json::from_slice(&body).unwrap_or_default()))
+}
+
+/// `Ok(None)` when already up to date, or when this binary wasn't built from a git
+/// checkout (e.g. a source tarball) and so doesn't know which commit it is.
 pub fn check() -> Result<Option<UpdateInfo>, String> {
     let Some(current) = current_commit() else { return Ok(None) };
-    let Some(token) = crate::github::token() else { return Ok(None) };
-    let (code, body) = crate::github::http_get(&format!("{REPO_API}/commits/main"), Some(&token))?;
-    let v: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
+    let (code, v) = api_get(&format!("{REPO_API}/commits/main"))?;
     if code != 200 {
         return Err(format!("GitHub API {code}: {}", v["message"].as_str().unwrap_or("request failed")));
     }
@@ -59,8 +68,7 @@ pub fn check() -> Result<Option<UpdateInfo>, String> {
     let Some(info) = needs_update(current, latest, message) else { return Ok(None) };
     // Only offer main when it's strictly ahead of this build: a feature-branch or
     // unpushed build (404, "behind", "diverged") would otherwise be downgraded.
-    let (code, body) = crate::github::http_get(&format!("{REPO_API}/compare/{current}...{latest}"), Some(&token))?;
-    let v: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
+    let (code, v) = api_get(&format!("{REPO_API}/compare/{current}...{latest}"))?;
     Ok((code == 200 && v["status"].as_str() == Some("ahead")).then_some(info))
 }
 
@@ -101,6 +109,8 @@ pub fn install(progress: impl Fn(&str)) -> Result<(), String> {
     let dir = checkout_dir();
     if dir.join(".git").is_dir() {
         progress("Descargando los últimos cambios…");
+        // Checkouts made before the repo was renamed still point at the old URL.
+        run(&progress, &dir, "git", &["remote", "set-url", "origin", REPO_URL])?;
         run(&progress, &dir, "git", &["fetch", "--depth", "1", "origin", "main"])?;
         run(&progress, &dir, "git", &["reset", "--hard", "origin/main"])?;
     } else {

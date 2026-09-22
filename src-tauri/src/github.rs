@@ -55,9 +55,9 @@ impl Credential {
     }
 }
 
-/// The saved github.com token, if git already has one — never prompts. GitDesk's own
-/// repo is private, so the updater needs this to read it (the same credential
-/// Push/Pull already use; the user doesn't need to be "signed in" to GitDesk itself).
+/// The saved github.com token, if git already has one — never prompts. The updater
+/// sends it for a higher API rate limit (the same credential Push/Pull already use;
+/// the user doesn't need to be "signed in" to GitDesk itself).
 pub(crate) fn token() -> Option<String> {
     let out = credential("fill", "", false).ok()?;
     parse_credential(&out).map(|c| c.password)
