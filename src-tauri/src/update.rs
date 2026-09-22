@@ -1,6 +1,8 @@
-//! Self-update: GitDesk has no release channel, just commits to `main` on GitHub.
-//! `check()` compares the commit this binary was built from (baked in by build.rs)
-//! against the tip of origin/main; `install()` pulls, rebuilds and reinstalls it.
+//! Self-update. GitHub Actions builds every push to `main` and publishes it as a
+//! release (.github/workflows/build.yml). `check()` compares the commit this binary
+//! was built from (baked in by build.rs) with the newest release; `install()`
+//! installs that release's .deb/.rpm when GitDesk came from one, and otherwise
+//! rebuilds from source like install.sh does.
 
 use serde::Serialize;
 use std::path::{Path, PathBuf};
@@ -30,7 +32,7 @@ fn current_commit() -> Option<&'static str> {
 pub struct UpdateInfo {
     pub current: String,
     pub latest: String,
-    /// First line of the latest commit's message, for the notice.
+    /// The release's title ("GitDesk 0.1.12"), for the notice.
     pub message: String,
 }
 
@@ -43,30 +45,94 @@ fn needs_update(current: &str, latest_sha: &str, message: &str) -> Option<Update
     Some(UpdateInfo { current: current[..current.len().min(7)].to_string(), latest: latest_sha[..7].to_string(), message })
 }
 
+/// A published release: the commit it was built from and its files.
+struct Release {
+    commit: String,
+    title: String,
+    /// (file name, download URL)
+    assets: Vec<(String, String)>,
+}
+
+impl Release {
+    fn asset(&self, wanted: impl Fn(&str) -> bool) -> Option<&(String, String)> {
+        self.assets.iter().find(|(name, _)| wanted(name.as_str()))
+    }
+}
+
+fn release_from(v: &serde_json::Value) -> Release {
+    let assets = v["assets"]
+        .as_array()
+        .map(|a| a.iter().filter_map(|x| Some((x["name"].as_str()?.to_string(), x["browser_download_url"].as_str()?.to_string()))).collect())
+        .unwrap_or_default();
+    Release {
+        // The workflow creates each release with `--target <sha>`.
+        commit: v["target_commitish"].as_str().unwrap_or_default().to_string(),
+        title: v["name"].as_str().unwrap_or_default().to_string(),
+        assets,
+    }
+}
+
+/// The newest release; `Ok(None)` when nothing has been published yet.
+fn latest_release() -> Result<Option<Release>, String> {
+    let (code, v) = crate::github::api_get(&format!("{REPO_API}/releases/latest"))?;
+    match code {
+        200 => Ok(Some(release_from(&v))),
+        404 => Ok(None),
+        _ => Err(format!("GitHub API {code}: {}", v["message"].as_str().unwrap_or("request failed"))),
+    }
+}
+
 /// `Ok(None)` when already up to date, or when this binary wasn't built from a git
 /// checkout (e.g. a source tarball) and so doesn't know which commit it is.
 pub fn check() -> Result<Option<UpdateInfo>, String> {
     let Some(current) = current_commit() else { return Ok(None) };
-    let (code, v) = crate::github::api_get(&format!("{REPO_API}/commits/main"))?;
-    if code != 200 {
-        return Err(format!("GitHub API {code}: {}", v["message"].as_str().unwrap_or("request failed")));
-    }
-    let latest = v["sha"].as_str().unwrap_or_default();
-    let message = v["commit"]["message"].as_str().unwrap_or_default();
-    let Some(info) = needs_update(current, latest, message) else { return Ok(None) };
-    // Only offer main when it's strictly ahead of this build: a feature-branch or
-    // unpushed build (404, "behind", "diverged") would otherwise be downgraded.
-    let (code, v) = crate::github::api_get(&format!("{REPO_API}/compare/{current}...{latest}"))?;
+    let Some(release) = latest_release()? else { return Ok(None) };
+    let Some(info) = needs_update(current, &release.commit, &release.title) else { return Ok(None) };
+    // Only offer the release when it's strictly ahead of this build: a feature-branch
+    // or unpushed build (404, "behind", "diverged") would otherwise be downgraded.
+    let (code, v) = crate::github::api_get(&format!("{REPO_API}/compare/{current}...{}", release.commit))?;
     Ok((code == 200 && v["status"].as_str() == Some("ahead")).then_some(info))
 }
 
-/// A private checkout the updater manages itself — independent of wherever (if
-/// anywhere) the user has their own clone for development.
-fn checkout_dir() -> PathBuf {
+/// A package manager that owns the running binary — then an update is the release's
+/// package of the same kind.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Package {
+    Deb,
+    Rpm,
+}
+
+impl Package {
+    fn installed() -> Option<Package> {
+        let exe = install_path();
+        let owns = |program: &str, flag: &str| {
+            Command::new(program).args([flag, exe.as_str()]).output().map(|o| o.status.success()).unwrap_or(false)
+        };
+        if owns("dpkg", "-S") {
+            Some(Package::Deb)
+        } else if owns("rpm", "-qf") {
+            Some(Package::Rpm)
+        } else {
+            None
+        }
+    }
+
+    /// Whether `file` is this kind of package for `arch` (as `tauri build` names them).
+    fn matches(self, file: &str, arch: &str) -> bool {
+        match (self, arch) {
+            (Package::Deb, "x86_64") => file.ends_with("_amd64.deb"),
+            (Package::Deb, "aarch64") => file.ends_with("_arm64.deb"),
+            (Package::Rpm, _) => file.ends_with(&format!(".{arch}.rpm")),
+            _ => false,
+        }
+    }
+}
+
+fn cache_dir() -> PathBuf {
     let base = std::env::var("XDG_CACHE_HOME")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".cache"));
-    base.join("gitdesk").join("update-src")
+    base.join("gitdesk")
 }
 
 fn run(progress: &dyn Fn(&str), dir: &Path, program: &str, args: &[&str]) -> Result<(), String> {
@@ -90,30 +156,72 @@ fn run(progress: &dyn Fn(&str), dir: &Path, program: &str, args: &[&str]) -> Res
     Ok(())
 }
 
-/// Pulls the latest `main` into the managed checkout, rebuilds the release binary
-/// and installs it over the running binary via `pkexec` (a graphical root prompt — no
-/// terminal needed). Runs on a blocking thread; `progress` reports each phase.
+/// Installs the newest release: its .deb/.rpm when GitDesk was installed from one,
+/// otherwise a rebuild from source. Both end in a `pkexec` password prompt (graphical
+/// — no terminal needed). Runs on a blocking thread; `progress` reports each phase.
 pub fn install(progress: impl Fn(&str)) -> Result<(), String> {
-    let dir = checkout_dir();
+    if let Some(package) = Package::installed() {
+        if let Some(release) = latest_release()? {
+            let file = release.asset(|n| package.matches(n, std::env::consts::ARCH));
+            let sums = release.asset(|n| n == "SHA256SUMS");
+            if let (Some(file), Some(sums)) = (file, sums) {
+                return install_package(&progress, package, file, sums);
+            }
+        }
+        progress("La última versión no trae un paquete para este sistema: se compilará desde el código.");
+    }
+    install_from_source(&progress)
+}
+
+/// Downloads the release's package, checks it against SHA256SUMS and installs it with
+/// the system package manager (which also pulls in any new dependency).
+fn install_package(progress: &dyn Fn(&str), package: Package, file: &(String, String), sums: &(String, String)) -> Result<(), String> {
+    let (name, url) = file;
+    if name.contains('/') || name.starts_with('.') {
+        return Err(format!("nombre de paquete inválido: {name}"));
+    }
+    let dir = cache_dir().join("download");
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+
+    progress(&format!("Descargando {name}…"));
+    run(progress, &dir, "curl", &["-fsSL", "-o", name.as_str(), url.as_str()])?;
+    run(progress, &dir, "curl", &["-fsSL", "-o", "SHA256SUMS", sums.1.as_str()])?;
+    run(progress, &dir, "sha256sum", &["-c", "--ignore-missing", "SHA256SUMS"])?;
+
+    progress("Instalando — se te pedirá tu contraseña…");
+    let path = dir.join(name);
+    let path = path.to_str().ok_or("ruta de descarga inválida")?;
+    match package {
+        Package::Deb => run(progress, &dir, "pkexec", &["apt-get", "install", "-y", path]),
+        Package::Rpm => run(progress, &dir, "pkexec", &["dnf", "install", "-y", path]),
+    }
+}
+
+/// Pulls the latest `main` into a checkout the updater manages itself (independent of
+/// any clone the user has), rebuilds the release binary and installs it over the
+/// running one.
+fn install_from_source(progress: &dyn Fn(&str)) -> Result<(), String> {
+    let dir = cache_dir().join("update-src");
     if dir.join(".git").is_dir() {
         progress("Descargando los últimos cambios…");
         // Checkouts made before the repo was renamed still point at the old URL.
-        run(&progress, &dir, "git", &["remote", "set-url", "origin", REPO_URL])?;
-        run(&progress, &dir, "git", &["fetch", "--depth", "1", "origin", "main"])?;
-        run(&progress, &dir, "git", &["reset", "--hard", "origin/main"])?;
+        run(progress, &dir, "git", &["remote", "set-url", "origin", REPO_URL])?;
+        run(progress, &dir, "git", &["fetch", "--depth", "1", "origin", "main"])?;
+        run(progress, &dir, "git", &["reset", "--hard", "origin/main"])?;
     } else {
         progress("Clonando GitDesk…");
         let parent = dir.parent().ok_or("ruta de caché inválida")?;
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         let name = dir.file_name().and_then(|n| n.to_str()).ok_or("ruta de caché inválida")?;
-        run(&progress, parent, "git", &["clone", "--depth", "1", REPO_URL, name])?;
+        run(progress, parent, "git", &["clone", "--depth", "1", REPO_URL, name])?;
     }
 
     progress("Instalando dependencias…");
-    run(&progress, &dir, "npm", &["install"])?;
+    run(progress, &dir, "npm", &["install"])?;
 
     progress("Compilando — puede tardar varios minutos…");
-    run(&progress, &dir, "npm", &["run", "tauri", "build", "--", "--no-bundle"])?;
+    run(progress, &dir, "npm", &["run", "tauri", "build", "--", "--no-bundle"])?;
 
     let bin = dir.join("src-tauri/target/release/gitdesk");
     if !bin.is_file() {
@@ -122,7 +230,7 @@ pub fn install(progress: impl Fn(&str)) -> Result<(), String> {
 
     progress("Instalando — se te pedirá tu contraseña…");
     let bin = bin.to_str().ok_or("ruta de binario inválida")?;
-    run(&progress, &dir, "pkexec", &["install", "-m755", bin, &install_path()])?;
+    run(progress, &dir, "pkexec", &["install", "-m755", bin, &install_path()])?;
 
     Ok(())
 }
@@ -150,5 +258,33 @@ mod tests {
     fn ignores_too_short_or_empty_sha(){
         assert_eq!(needs_update("abc1234", "", "msg"), None);
         assert_eq!(needs_update("abc1234", "ab12", "msg"), None);
+    }
+
+    #[test]
+    fn release_parsing(){
+        let v = serde_json::json!({
+            "name": "GitDesk 0.1.12",
+            "target_commitish": "f00dbeefaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "assets": [
+                { "name": "GitDesk_0.1.12_amd64.deb", "browser_download_url": "https://example.com/a.deb" },
+                { "name": "GitDesk-0.1.12-1.x86_64.rpm", "browser_download_url": "https://example.com/a.rpm" },
+                { "name": "SHA256SUMS", "browser_download_url": "https://example.com/sums" }
+            ]
+        });
+        let r = release_from(&v);
+        assert_eq!((r.title.as_str(), &r.commit[..7]), ("GitDesk 0.1.12", "f00dbee"));
+        assert_eq!(r.asset(|n| Package::Deb.matches(n, "x86_64")).unwrap().1, "https://example.com/a.deb");
+        assert_eq!(r.asset(|n| Package::Rpm.matches(n, "x86_64")).unwrap().1, "https://example.com/a.rpm");
+        assert!(r.asset(|n| Package::Deb.matches(n, "aarch64")).is_none());
+        assert!(r.asset(|n| n == "SHA256SUMS").is_some());
+    }
+
+    #[test]
+    fn package_names_per_arch(){
+        assert!(Package::Deb.matches("GitDesk_0.1.3_arm64.deb", "aarch64"));
+        assert!(!Package::Deb.matches("GitDesk_0.1.3_amd64.deb", "aarch64"));
+        assert!(Package::Rpm.matches("GitDesk-0.1.3-1.aarch64.rpm", "aarch64"));
+        assert!(!Package::Rpm.matches("GitDesk_0.1.3_amd64.AppImage", "x86_64"));
+        assert!(!Package::Deb.matches("GitDesk_0.1.3_amd64.deb", "riscv64"));
     }
 }

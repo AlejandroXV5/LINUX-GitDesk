@@ -35,6 +35,12 @@ GitDesk es una app Tauri v2. La interfaz es HTML/CSS/TypeScript servida por Vite
 - Pull Requests usan `gh` (GitHub CLI); si no está instalado se devuelve `gh-missing`.
 - `github.rs` es la cuenta de GitHub, sin app OAuth propia: `github_account` hace `git credential fill` sin interacción al arrancar; `github_sign_in` lo repite con `GCM_INTERACTIVE=auto` para que Git Credential Manager abra el inicio de sesión en el navegador, y luego hace `approve` (o `reject` si GitHub devuelve 401); `github_sign_out` hace `reject`. El perfil (`GET /user`) y el avatar se leen con el `curl` del sistema. Sin un helper capaz de iniciar sesión, devuelve `no-helper`.
 - Los fallos de autenticación HTTPS contra github.com (fetch, pull, push, clone) generan `n.authFailed` con la acción `signIn`.
+- `github_issues(owner/name)` lista los issues abiertos del repositorio para el selector `#` de Git Changes (sin pull requests). Solo se ofrece cuando `origin` está en github.com; funciona sin sesión en repos públicos y con el token de git en los privados (`github::api_get`).
+- `update.rs` es el actualizador: compara el commit con el que se compiló el binario (`GITDESK_COMMIT`, de `build.rs`) con la última release de GitHub. Si GitDesk se instaló desde un `.deb`/`.rpm` (`dpkg -S` / `rpm -qf`), descarga el paquete de esa release, lo verifica con `SHA256SUMS` y lo instala con `pkexec apt-get`/`dnf`; si no, recompila desde el código.
+
+## Versiones (GitHub Actions)
+
+`.github/workflows/build.yml` corre en Ubuntu 22.04 (su glibc mantiene los paquetes instalables en Ubuntu 22.04+, Debian 12+ y Fedora): typecheck, `vite build` y `cargo test` en cada pull request y push. En cada push a `main` además compila `.deb`, `.rpm` y `.AppImage` con versión `0.1.<número de ejecución>` —siempre creciente, para que apt/dnf actualicen— y los publica como release `v0.1.N` con `SHA256SUMS` y la lista de commits desde la anterior. Se conservan las 10 últimas.
 
 ## Pruebas
 

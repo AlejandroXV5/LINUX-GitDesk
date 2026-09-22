@@ -1,11 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
 import { inTauri } from './tauri';
 
-/** GitDesk has no release channel — this is commit `latest` on GitHub's `main`. */
+/** The newest GitHub release (built from commit `latest`), when it's newer than this build. */
 export interface UpdateInfo {
   current: string;
   latest: string;
-  /** First line of the latest commit's message. */
+  /** The release's title, e.g. "GitDesk 0.1.12". */
   message: string;
 }
 

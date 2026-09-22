@@ -40,7 +40,16 @@ Con tu usuario normal (pedirá `sudo`):
 git clone https://github.com/AlejandroXV5/LINUX-GitDesk.git ~/gitdesk && bash ~/gitdesk/install.sh
 ```
 
-Instala los paquetes del sistema (apt, dnf o pacman), Node y Rust si faltan, compila GitDesk, lo instala (.deb en Ubuntu/Debian, .rpm en Fedora, binario + lanzador en Arch) y configura Git Credential Manager para *Iniciar sesión* con GitHub. Al instalarlo desde un clon, GitDesk avisa cuando hay una versión nueva y se actualiza solo. Si ya tienes la carpeta, `bash ~/gitdesk/install.sh` vuelve a instalar.
+- **Ubuntu / Debian / Mint / Fedora (x86_64):** descarga el `.deb` o `.rpm` ya compilado de la [última versión](https://github.com/AlejandroXV5/LINUX-GitDesk/releases/latest), verifica su `SHA256SUMS` y lo instala. Tarda un par de minutos y no hace falta Node ni Rust.
+- **Arch, ARM u otros casos:** compila GitDesk (instala las librerías de desarrollo, Node y Rust si faltan). Para forzarlo en cualquier sistema: `bash ~/gitdesk/install.sh --source`.
+
+En los dos casos configura Git Credential Manager para *Iniciar sesión* con GitHub. GitDesk avisa cuando hay una versión nueva y se actualiza solo: descarga el paquete de la nueva versión (o la recompila si la instalaste compilando). Si ya tienes la carpeta, `bash ~/gitdesk/install.sh` reinstala la última versión.
+
+También puedes descargar a mano el `.deb`, `.rpm` o `.AppImage` desde [Releases](https://github.com/AlejandroXV5/LINUX-GitDesk/releases) (`sudo apt install ./GitDesk_*_amd64.deb`).
+
+### Versiones
+
+Cada push a `main` pasa por [GitHub Actions](.github/workflows/build.yml): corre las pruebas, compila los paquetes y publica una versión `0.1.N` en Releases. Los pull requests solo corren las pruebas.
 
 ## Empezar
 
