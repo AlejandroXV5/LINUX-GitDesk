@@ -10,7 +10,7 @@ import { account } from './account';
 import { appLog, busy, dialog, run, toast, type DialogApi } from './core';
 import { fileRowHtml, renderAll, renderSidebar } from './render';
 import { B, DEMO, P, doOp, isDemo, loadPrs, openRepo } from './session';
-import { VERSION } from '../version';
+import { build } from '../version';
 
 const field = (label: string, inner: string) => `<label class="field"><span>${esc(label)}</span>${inner}</label>`;
 const check = (id: string, label: string, on: boolean) => `<label class="cb"><input type="checkbox" id="${id}"${on ? ' checked' : ''}><span class="box">${svg('check')}</span><span>${esc(label)}</span></label>`;
@@ -363,7 +363,7 @@ export function shortcutsHtml(){
 }
 export function dlgShortcuts(){ dialog({ title: t('dl.shortcuts'), body: shortcutsHtml(), actions: [{ label: t('dl.close'), primary: true }] }); }
 export function dlgAbout(){
-  dialog({ title: t('dl.about'), body: `<div class="about-head">${svg('logo', 'about-logo')}<strong>GitDesk ${VERSION}</strong></div><p style="margin:0">${esc(t('about.body', { v: VERSION }))}</p>${isDemo() ? `<p class="hint" style="margin:0">${esc(t('about.proto'))}</p>` : ''}`, actions: [{ label: t('dl.close'), primary: true }] });
+  dialog({ title: t('dl.about'), body: `<div class="about-head">${svg('logo', 'about-logo')}<div><strong>GitDesk ${esc(build.version)}</strong>${build.commit ? `<div class="hint mono">${esc(t('about.commit', { c: build.commit }))}</div>` : ''}</div></div><p style="margin:0">${esc(t('about.body', { v: build.version }))}</p>${isDemo() ? `<p class="hint" style="margin:0">${esc(t('about.proto'))}</p>` : ''}`, actions: [{ label: t('dl.close'), primary: true }] });
 }
 export function shutdown(title: string, text: string, btn: string){
   $('#shutTitle').textContent = title; $('#shutText').textContent = text; $('#shutBtn').textContent = btn;

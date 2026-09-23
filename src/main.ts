@@ -11,7 +11,7 @@ import { DEMO, openRepo } from './ui/session';
 import { loadAccount } from './ui/account';
 import { checkForUpdate } from './ui/update';
 import { S } from './core/settings';
-import { VERSION } from './version';
+import { build, loadBuildInfo } from './version';
 import './ui/actions'; // registers the info-bar action runner
 
 setBusyListener(() => { renderBusy(); if (hasRepo()) renderDock(); });
@@ -22,7 +22,8 @@ async function boot(){
   // Inside Tauri the window manager draws the title bar; the in-page one is for the browser demo.
   if (inTauri()) $('#app').classList.add('in-tauri');
   wire();
-  appLog(`GitDesk ${VERSION} — ${inTauri() ? 'desktop' : 'browser (demo backend)'}`);
+  await loadBuildInfo();
+  appLog(`GitDesk ${build.version}${build.commit ? ` (${build.commit})` : ''} — ${inTauri() ? 'desktop' : 'browser (demo backend)'}`);
   renderAll();
   setupAutoFetch();
   loadAccount(); // git credential fill, never prompts — doesn't block opening the repository

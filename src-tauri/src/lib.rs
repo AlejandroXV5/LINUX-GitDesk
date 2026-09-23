@@ -251,7 +251,14 @@ async fn github_issues(repo: String) -> R<Vec<Issue>> {
     github::list_issues(&repo)
 }
 
-/// `None` when GitDesk is already up to date with origin/main.
+/// The commit this build was made from (baked in by build.rs), for the About dialog —
+/// "" when it was built outside a git checkout.
+#[tauri::command]
+fn app_commit() -> String {
+    env!("GITDESK_COMMIT").chars().take(7).collect()
+}
+
+/// `None` when GitDesk is already up to date with the latest release.
 #[tauri::command]
 async fn app_check_update() -> R<Option<UpdateInfo>> {
     update::check()
@@ -335,6 +342,7 @@ pub fn run() {
             github_sign_out,
             github_repos,
             github_issues,
+            app_commit,
             app_check_update,
             app_update,
             app_restart
