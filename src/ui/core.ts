@@ -16,7 +16,7 @@ export function toast(msg: string, action?: Action | null){
   toastTimer = window.setTimeout(() => el.classList.remove('show'), action ? 5000 : 2600);
 }
 
-export const isNarrow = () => window.innerWidth <= 760;
+export const isNarrow = () => window.innerWidth <= 1080;
 
 // ---------- notices (Git Changes info bar) ----------
 // Set by main.ts: how a notice's action names ("push", "mergeAbort"…) run.

@@ -36,9 +36,9 @@ const DEFAULTS: Settings = {
   pushAfterCommit: false,
   showSidebar: true,
   showDock: true,
-  showOutput: true,
-  sidebarWidth: 272,
-  dockWidth: 372
+  showOutput: false,
+  sidebarWidth: 248,
+  dockWidth: 352
 };
 
 export const S: Settings = Object.assign({}, DEFAULTS, store.get<Partial<Settings>>('gitdesk-settings', {}));

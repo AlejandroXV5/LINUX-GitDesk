@@ -29,15 +29,17 @@
 
   <div class="toolbar" id="toolbar">
     <button class="t-btn icon-only hamburger" data-act="toggleSidebar" data-i18n-title="v.sidebar"><i data-ic="menu"></i></button>
+    <button class="repo-context needs-repo" id="toolbarRepo" data-keepmenu type="button"><span class="repo-context-name" id="toolbarRepoName"></span><span class="repo-context-path" id="toolbarRepoPath"></span></button>
+    <span class="t-sep context-sep"></span>
+    <button class="selectbox toolbar-branch needs-repo" id="branchSelect" data-keepmenu><i data-ic="branch"></i><span class="lbl" id="branchSelectLabel"></span><i data-ic="chevDown"></i></button>
+    <button class="toolbar-tracking needs-repo" id="toolbarTracking" data-keepmenu type="button"></button>
+    <span class="t-spacer"></span>
     <button class="t-btn sync-op" data-act="fetch" data-i18n-title="tip.fetch"><i data-ic="fetch"></i><span>Fetch</span></button>
     <button class="t-btn sync-op" data-act="pull" data-i18n-title="tip.pull"><i data-ic="pull"></i><span>Pull</span><span class="count" id="pullCount" hidden></span></button>
     <button class="t-btn sync-op" data-act="push" data-i18n-title="tip.push"><i data-ic="push"></i><span>Push</span><span class="count" id="pushCount" hidden></span></button>
-    <button class="t-btn sync-op" data-act="sync" data-i18n-title="tip.sync"><i data-ic="sync"></i><span>Sync</span></button>
     <span class="t-sep"></span>
     <button class="t-btn needs-repo" data-act="newBranch"><i data-ic="branchPlus"></i><span data-i18n="tb.branch"></span></button>
     <button class="t-btn needs-repo" data-act="stash"><i data-ic="stash"></i><span>Stash</span></button>
-    <span class="t-spacer"></span>
-    <button class="t-btn icon-only" data-act="toggleOutput" id="outputToggle" data-i18n-title="v.output"><i data-ic="terminal"></i></button>
     <button class="t-btn icon-only" data-act="toggleDock" id="dockToggle" data-i18n-title="v.dock"><i data-ic="panel"></i></button>
   </div>
 
@@ -47,18 +49,25 @@
     <div class="leftcol">
       <div class="toprow">
         <nav class="sidebar" id="sidebar">
+          <div class="sidebar-head"><strong data-i18n="ui.explorer"></strong><button class="icon-btn" data-act="toggleSidebar" data-i18n-title="v.sidebar"><i data-ic="panel"></i></button></div>
           <label class="filterbox"><i data-ic="search"></i><input id="branchFilter" data-i18n-ph="sb.filter" autocomplete="off"></label>
           <div class="tree" id="tree" role="tree"></div>
         </nav>
         <div class="resize-handle" id="sidebarResize" role="separator" aria-orientation="vertical" data-i18n-title="dl.dragResize"></div>
         <section class="graph-pane" id="graphPane">
           <div class="gtoolbar">
+            <div class="view-tabs" role="tablist" data-i18n-title="ui.views">
+              <button class="view-tab active" id="historyTab" type="button" role="tab" aria-selected="true" aria-controls="historyContent" data-i18n="ui.history"></button>
+              <button class="view-tab" id="diffTab" type="button" role="tab" aria-selected="false" aria-controls="inlineDiff" data-i18n="ui.diff" disabled></button>
+            </div>
+            <span class="gtoolbar-sep"></span>
             <button class="icon-btn" data-act="refresh" data-i18n-title="gr.refresh"><i data-ic="refresh"></i></button>
             <button class="icon-btn" data-act="toggleAll" id="allBtn" data-i18n-title="gr.allBranches"><i data-ic="branches"></i></button>
             <button class="icon-btn" data-act="toggleTags" id="tagsBtn" data-i18n-title="gr.tags"><i data-ic="tag"></i></button>
             <span class="t-spacer"></span>
             <label class="filterbox"><input id="historyFilter" data-i18n-ph="gr.filter" autocomplete="off"><i data-ic="search"></i></label>
           </div>
+          <div class="history-content" id="historyContent" role="tabpanel" aria-labelledby="historyTab">
           <div class="gref"><span data-i18n="gr.branchTag"></span><button class="link" id="viewRefBtn" data-keepmenu></button></div>
           <div id="syncSections"></div>
           <div class="gridrow thead" id="thead">
@@ -66,6 +75,12 @@
           </div>
           <div class="graph-scroll" id="graphBody" tabindex="0" role="grid"></div>
           <div class="detail" id="detail" hidden></div>
+          </div>
+          <div class="inline-diff" id="inlineDiff" role="tabpanel" aria-labelledby="diffTab" hidden>
+            <div class="inline-diff-head"><div><strong id="inlineDiffName"></strong><span id="inlineDiffContext"></span></div><div class="diff-stat"><span class="a" id="inlineDiffAdded"></span><span class="d" id="inlineDiffDeleted"></span></div><button class="icon-btn" id="inlineDiffRefresh" data-i18n-title="gr.refresh"><i data-ic="refresh"></i></button><button class="icon-btn" id="inlineDiffClose" data-i18n-title="dl.close"><i data-ic="x"></i></button></div>
+            <div class="inline-diff-actions" id="inlineDiffActions"></div>
+            <div class="diff inline-diff-body" id="inlineDiffBody"></div>
+          </div>
         </section>
       </div>
       <section class="output" id="output">
@@ -87,19 +102,14 @@
 
     <div class="resize-handle" id="dockResize" role="separator" aria-orientation="vertical" data-i18n-title="dl.dragResize"></div>
     <aside class="dock" id="dock">
-      <div class="dock-head"><span class="ttl" id="dockTitle"></span><button class="icon-btn" data-act="toggleDock" data-i18n-title="dl.close"><i data-ic="x"></i></button></div>
+      <div class="dock-head"><span class="ttl" id="dockTitle"></span><span class="dock-file-count" id="dockFileCount"></span><button class="icon-btn" data-act="toggleDock" data-i18n-title="dl.close"><i data-ic="x"></i></button></div>
       <div class="progress" id="dockProgress" hidden></div>
-      <div class="dock-bar">
-        <button class="selectbox" id="branchSelect" data-keepmenu><i data-ic="branch"></i><span class="lbl" id="branchSelectLabel"></span><i data-ic="chevDown"></i></button>
-        <button class="icon-btn sync-op" data-act="fetch" data-i18n-title="tip.fetch"><i data-ic="fetch"></i></button>
-        <button class="icon-btn sync-op" data-act="pull" data-i18n-title="tip.pull"><i data-ic="pull"></i></button>
-        <button class="icon-btn sync-op" data-act="push" data-i18n-title="tip.push"><i data-ic="push"></i></button>
-        <button class="icon-btn sync-op" data-act="sync" data-i18n-title="tip.sync"><i data-ic="sync"></i></button>
-        <button class="icon-btn" id="dockMore" data-keepmenu data-i18n-title="dk.more"><i data-ic="dots"></i></button>
-      </div>
+      <div class="dock-context"><strong id="dockBranchName"></strong><span id="dockContextText"></span><button class="icon-btn" id="dockMore" data-keepmenu data-i18n-title="dk.more"><i data-ic="dots"></i></button></div>
       <div class="dock-counts"><button class="ab" id="dockCounts" data-keepmenu></button><button class="link" data-act="viewAll" data-i18n="dk.viewAll"></button></div>
       <div id="notice"></div>
+      <div class="changes-scroll" id="changesScroll"></div>
       <div class="compose">
+        <label class="compose-label" for="commitMsg" data-i18n="ui.commitMessage"></label>
         <div class="msgwrap">
           <textarea id="commitMsg" data-i18n-ph="dk.msgPh" rows="3"></textarea>
           <button class="icon-btn hashbtn" id="hashBtn" data-keepmenu data-i18n-title="dk.hash">#</button>
@@ -109,13 +119,13 @@
           <label class="cb"><input type="checkbox" id="amendCb"><span class="box"><i data-ic="check"></i></span><span>Amend</span></label>
         </div>
       </div>
-      <div class="changes-scroll" id="changesScroll"></div>
     </aside>
   </div>
 
   <footer class="statusbar">
     <span class="sb-item sb-state" id="sbState"></span>
     <span class="sb-item sb-demo" id="sbDemo" hidden></span>
+    <button class="sb-item sb-output" data-act="toggleOutput" id="outputToggle" data-i18n-title="v.output"><i data-ic="terminal"></i><span data-i18n="out.title"></span></button>
     <span class="sb-spacer"></span>
     <button class="sb-item" id="sbSync" data-keepmenu></button>
     <button class="sb-item" id="sbChanges"></button>

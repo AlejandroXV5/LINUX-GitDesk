@@ -8,6 +8,7 @@ import { S, saveSettings, t, w } from '../core/settings';
 import { $, $$, esc, firstLine, s7 } from '../core/util';
 import { account } from './account';
 import { appLog, busy, dialog, run, toast, type DialogApi } from './core';
+import { diffTableHtml, parseDiff } from './diff-format';
 import { fileRowHtml, renderAll, renderSidebar } from './render';
 import { B, DEMO, P, doOp, isDemo, loadPrs, openRepo } from './session';
 import { build } from '../version';
@@ -263,22 +264,6 @@ async function runCreate(fn: () => Promise<{ path: string; result: import('../co
 }
 
 // ---------- diff viewer ----------
-interface DiffRow { k: string; o: number | ''; n: number | ''; t: string }
-/** Parse a unified diff into rows with old/new line numbers. */
-export function parseDiff(text: string): DiffRow[] {
-  const rows: DiffRow[] = []; let o = 0, n = 0;
-  for (const line of text.split('\n')){
-    if (/^(diff --git|index |--- |\+\+\+ )/.test(line)) continue;
-    if (/^(new file|deleted file|rename |similarity|old mode|new mode|Binary)/.test(line)){ rows.push({ k: 'meta', o: '', n: '', t: line }); continue; }
-    const h = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line);
-    if (h){ o = +h[1]; n = +h[2]; rows.push({ k: 'hunk', o: '', n: '', t: line }); continue; }
-    if (line.startsWith('+')) rows.push({ k: 'add', o: '', n: n++, t: line });
-    else if (line.startsWith('-')) rows.push({ k: 'del', o: o++, n: '', t: line });
-    else if (line.startsWith(' ')) rows.push({ k: '', o: o++, n: n++, t: line });
-    else if (line.startsWith('\\')) rows.push({ k: 'meta', o: '', n: '', t: line });
-  }
-  return rows;
-}
 export async function dlgDiff(f: FileChange | WorkFile, ctx: string){
   const inWork = R.work.find(x => x.path === f.path && (ctx === 'staged' ? x.staged : !x.staged));
   const untracked = ctx === 'work' && f.st === 'A';
@@ -298,7 +283,7 @@ export async function dlgDiff(f: FileChange | WorkFile, ctx: string){
   const box = d.$<HTMLElement>('#dfBody'); if (!box) return;
   d.$<HTMLElement>('#dfA').textContent = '+' + rows.filter(r => r.k === 'add').length;
   d.$<HTMLElement>('#dfD').textContent = '−' + rows.filter(r => r.k === 'del').length;
-  box.innerHTML = rows.length ? `<table>${rows.map(r => `<tr class="${r.k}"><td class="ln">${r.o}</td><td class="ln">${r.n}</td><td>${esc(r.t)}</td></tr>`).join('')}</table>` : `<div class="hint" style="padding:8px">—</div>`;
+  box.innerHTML = diffTableHtml(rows);
 }
 export async function dlgStash(id: string){
   const s = R.stashes.find(x => x.id === id); if (!s) return;

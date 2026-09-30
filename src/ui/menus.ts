@@ -5,7 +5,8 @@ import { S, saveSettings, t } from '../core/settings';
 import { $, esc } from '../core/util';
 import { act, winClose } from './actions';
 import { busy, closeMenus, confirmDlg, copyText, isNarrow, menuAnchor, popoverAt, type MenuItem } from './core';
-import { dlgAbout, dlgClone, dlgCompare, dlgDelete, dlgDiff, dlgNewBranch, dlgNewPR, dlgNewRepo, dlgNewTag, dlgOpenRepo, dlgOptions, dlgShortcuts, dlgWorktree } from './dialogs';
+import { dlgAbout, dlgClone, dlgCompare, dlgDelete, dlgNewBranch, dlgNewPR, dlgNewRepo, dlgNewTag, dlgOpenRepo, dlgOptions, dlgShortcuts, dlgWorktree } from './dialogs';
+import { openInlineDiff } from './inline-diff';
 import { renderAll, renderDock, renderLayout } from './render';
 import { B, DEMO, P, canLinkIssues, closeRepo, doOp, isDemo, loadIssues, openRepo, recent } from './session';
 
@@ -132,7 +133,7 @@ export function commitMenu(sha: string): MenuItem[] {
 export function fileMenu(path: string, staged: boolean): MenuItem[] {
   const f = R.work.find(x => x.path === path && x.staged === staged); if (!f) return [];
   return [
-    { label: t('dk.open'), icon: 'diff', action: () => dlgDiff(f, staged ? 'staged' : 'work') },
+    { label: t('dk.open'), icon: 'diff', action: () => { void openInlineDiff(f, staged ? 'staged' : 'work'); if (isNarrow()){ $('#app').classList.remove('drawer-dock'); renderLayout(); } $('#diffTab').focus(); } },
     staged ? { label: t('dk.unstage'), icon: 'minus', action: () => fileAct('unstage', path) } : { label: t('dk.stage'), icon: 'plus', action: () => fileAct('stage', path) },
     { label: t('dk.discard'), icon: 'undo', disabled: staged, action: () => fileAct('discard', path) },
     { divider: true },

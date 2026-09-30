@@ -6,13 +6,19 @@ import { $, $$ } from '../core/util';
 import { accountMenu, signIn } from './account';
 import { act, winClose } from './actions';
 import { OUT, appLog, busy, closeMenus, copyText, isNarrow, menuAnchor, menuAt, menuKeys, runNoticeAction, showMenu } from './core';
-import { dlgClone, dlgDelete, dlgDiff, dlgNewPR, dlgNewRepo, dlgOpenRepo, dlgOptions, dlgPR, dlgStash, dlgSubmodule } from './dialogs';
+import { dlgClone, dlgDelete, dlgNewPR, dlgNewRepo, dlgOpenRepo, dlgOptions, dlgPR, dlgStash, dlgSubmodule } from './dialogs';
+import { currentDiff, openInlineDiff, showHistory, showSelectedDiff } from './inline-diff';
 import { branchPicker, commitMenu, commitMoreMenu, dockMoreMenu, fileAct, fileMenu, issuePicker, mainMenu, refMenu, repoMenuItems, syncMenu, viewRefMenu } from './menus';
 import { filesFor, outChannel, renderAll, renderChrome, renderDetail, renderDock, renderGraph, renderLayout, renderOutput, renderSidebar } from './render';
 import { B, DEMO, P, doOp, loadPrs, openRepo, refresh, removeRecent } from './session';
 
 const ta = () => $('#commitMsg') as HTMLTextAreaElement;
 const closest = <T extends HTMLElement = HTMLElement>(e: Event, sel: string) => (e.target as HTMLElement).closest<T>(sel);
+const openFileDiff = (file: import('../core/model').FileChange | import('../core/model').WorkFile, context: string) => {
+  void openInlineDiff(file, context);
+  if (isNarrow()){ $('#app').classList.remove('drawer-dock'); renderLayout(); }
+  $('#diffTab').focus();
+};
 
 export function wire(){
   $$('i[data-ic]').forEach(el => { el.outerHTML = svg(el.dataset.ic!); });
@@ -33,6 +39,8 @@ export function wire(){
   $('#themeBtn').addEventListener('click', () => { const cur = document.documentElement.getAttribute('data-theme'); act.setTheme(cur === 'light' ? 'dark' : cur === 'dark' ? 'auto' : 'light'); });
   $('#winClose').addEventListener('click', winClose);
   $('#accountBtn').addEventListener('click', e => accountMenu(e.currentTarget as HTMLElement));
+  $('#toolbarRepo').addEventListener('click', e => menuAt(e.currentTarget as HTMLElement, repoMenuItems()));
+  $('#toolbarTracking').addEventListener('click', e => menuAt(e.currentTarget as HTMLElement, syncMenu()));
   $('#shutBtn').addEventListener('click', () => { $('#shutdown').hidden = true; appLog('window restored'); renderAll(); });
 
   // menu bar
@@ -95,7 +103,7 @@ export function wire(){
     const dt = closest(e, '[data-dact]');
     if (dt){ const a = dt.dataset.dact; if (a === 'close'){ R.selected = null; renderDetail(); renderGraph(); } else if (a === 'copy') copyText(R.selected!); else if (a === 'menu') menuAt(dt, commitMenu(R.selected!), true); return; }
     const go = closest(e, '[data-goto]'); if (go){ selectCommit(go.dataset.goto!); $(`.crow[data-sha="${go.dataset.goto}"]`)?.scrollIntoView({ block: 'nearest' }); return; }
-    const fr = closest(e, '#detail .frow'); if (fr){ const f = (filesFor(R.selected!) || []).find(x => x.path === fr.dataset.path); if (f) dlgDiff(f, R.selected!); }
+    const fr = closest(e, '#detail .frow'); if (fr){ const f = (filesFor(R.selected!) || []).find(x => x.path === fr.dataset.path); if (f) openFileDiff(f, R.selected!); }
   });
   gp.addEventListener('contextmenu', e => { const row = closest(e, '.crow'); if (!row) return; e.preventDefault(); selectCommit(row.dataset.sha!); showMenu(commitMenu(row.dataset.sha!), (e as MouseEvent).clientX, (e as MouseEvent).clientY); });
   $('#graphBody').addEventListener('keydown', e => {
@@ -109,6 +117,27 @@ export function wire(){
   });
   $('#historyFilter').addEventListener('input', renderGraph);
   $('#viewRefBtn').addEventListener('click', e => menuAt(e.currentTarget as Element, viewRefMenu()));
+  $('#historyTab').addEventListener('click', showHistory);
+  $('#diffTab').addEventListener('click', showSelectedDiff);
+  $('.view-tabs').addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const next = $('#historyTab').getAttribute('aria-selected') === 'true' ? $('#diffTab') : $('#historyTab');
+    if ((next as HTMLButtonElement).disabled) return;
+    next.click(); (next as HTMLElement).focus();
+  });
+  $('#inlineDiffClose').addEventListener('click', showHistory);
+  $('#inlineDiffRefresh').addEventListener('click', () => {
+    const selected = currentDiff();
+    if (selected) void openInlineDiff(selected.file, selected.context);
+  });
+  $('#inlineDiffActions').addEventListener('click', e => {
+    const action = closest(e, '[data-inline-act]')?.dataset.inlineAct as 'stage' | 'unstage' | 'discard' | undefined;
+    const selected = currentDiff();
+    if (!action || !selected) return;
+    showHistory();
+    fileAct(action, selected.file.path);
+  });
 
   // output
   $('#outChannel').addEventListener('click', e => {
@@ -145,12 +174,12 @@ export function wire(){
     const tl = closest(e, '[data-dtool]'); if (tl){ ((act as Record<string, unknown>)[tl.dataset.dtool!] as () => void).call(act); return; }
     const ur = closest(e, '[data-unrel]'); if (ur){ const id = ur.dataset.unrel!; R.related = R.related.filter(x => x !== +id); ta().value = ta().value.replace(new RegExp('\\s?#' + id + '\\b'), ''); R.msg = ta().value; renderDock(); return; }
     const fa = closest(e, '[data-fact]');
-    if (fa){ const { path, staged } = rowFile(fa); const a = fa.dataset.fact!; if (a === 'diff'){ const f = R.work.find(x => x.path === path && x.staged === staged); if (f) dlgDiff(f, staged ? 'staged' : 'work'); } else fileAct(a as 'stage' | 'unstage' | 'discard', path); return; }
+    if (fa){ const { path, staged } = rowFile(fa); const a = fa.dataset.fact!; if (a === 'diff'){ const f = R.work.find(x => x.path === path && x.staged === staged); if (f) openFileDiff(f, staged ? 'staged' : 'work'); } else fileAct(a as 'stage' | 'unstage' | 'discard', path); return; }
     const sa = closest(e, '[data-sact]');
     if (sa){ const id = sa.closest<HTMLElement>('[data-stash]')!.dataset.stash!; const a = sa.dataset.sact; doOp('st.working', () => a === 'drop' ? B().stashDrop(P(), id) : B().stashApply(P(), id, a === 'pop')); return; }
     const st = closest(e, '[data-stash]'); if (st){ dlgStash(st.dataset.stash!); return; }
     const fr = closest(e, '.frow[data-path]');
-    if (fr){ const { path, staged } = rowFile(fr); const f = R.work.find(x => x.path === path && x.staged === staged); if (f) dlgDiff(f, staged ? 'staged' : 'work'); }
+    if (fr){ const { path, staged } = rowFile(fr); const f = R.work.find(x => x.path === path && x.staged === staged); if (f) openFileDiff(f, staged ? 'staged' : 'work'); }
   });
   cs.addEventListener('dblclick', e => { const fr = closest(e, '.frow[data-path]'); if (fr && !closest(e, 'button')){ const { path, staged } = rowFile(fr); fileAct(staged ? 'unstage' : 'stage', path); } });
   cs.addEventListener('contextmenu', e => {
@@ -210,7 +239,7 @@ export function wire(){
  * A draggable divider that resizes the panel next to it. `fromRight` is true for a
  * panel whose left edge the handle sits at (like the dock) — dragging right shrinks
  * it instead of growing it. Disabled below the drawer breakpoint, where panels are
- * fixed-width overlays (see `isNarrow` and the `max-width:760px` CSS).
+ * fixed-width overlays (see `isNarrow` and the `max-width:1080px` CSS).
  */
 function wireResize(handle: HTMLElement, panel: HTMLElement, min: number, max: number, fromRight: boolean, apply: (px: number) => void){
   handle.addEventListener('pointerdown', e => {

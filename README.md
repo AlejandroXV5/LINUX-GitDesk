@@ -2,7 +2,7 @@
 
 Cliente Git de escritorio para Linux inspirado en las herramientas de control de versiones de Visual Studio: árbol de ramas, historial con gráfico de commits y el panel **Git Changes** acoplado (Fetch / Pull / Push / Sync, commit, amend, stage, stashes), con menús contextuales equivalentes a los de VS.
 
-![GitDesk](docs/screenshot.png)
+La interfaz actual sigue la [propuesta de rediseño](design/PROPUESTA-REDISENO.md): contexto del repositorio en la barra superior, historial y diff en el centro, cambios y commit en el panel derecho.
 
 - **Tauri v2 + Rust** en el backend: ejecuta el `git` real del sistema (sin reimplementar Git).
 - **Vite + TypeScript** (sin framework) en el frontend, portado del prototipo aprobado.

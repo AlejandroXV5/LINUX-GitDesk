@@ -10,10 +10,12 @@ import { setWindowTitle } from '../backend/tauri';
 import { OUT, busy, isNarrow } from './core';
 import { B, P, canLinkIssues, isDemo, recent } from './session';
 import { account, accountPic, renderAccount, signingIn } from './account';
+import { syncInlineDiff } from './inline-diff';
 
 export function renderAll(){
   const app = $('#app');
   app.classList.toggle('no-repo', !hasRepo());
+  syncInlineDiff();
   renderChrome(); renderLayout();
   if (!hasRepo()){ renderWelcome(); renderStatus(); renderOutput(); renderBusy(); return; }
   renderSidebar(); renderGraph(); renderDetail(); renderDock(); renderStatus(); renderOutput(); renderBusy();
@@ -33,12 +35,17 @@ export function renderChrome(){
   $('#langLabel').textContent = S.lang.toUpperCase();
   applyTheme();
   renderAccount();
-  if (!hasRepo()){ setWindowTitle('GitDesk'); $('#winTitle').textContent = 'GitDesk'; $('#pushCount').hidden = true; $('#pullCount').hidden = true; return; }
+  if (!hasRepo()){ setWindowTitle('GitDesk'); $('#winTitle').textContent = 'GitDesk'; $('#pushCount').hidden = true; $('#pullCount').hidden = true; $('#pushCount').parentElement?.classList.remove('has-outgoing'); $('#toolbarRepoName').textContent = ''; $('#toolbarRepoPath').textContent = ''; $('#toolbarTracking').textContent = ''; return; }
   const cb = curBranch();
+  $('#toolbarRepoName').textContent = R.name;
+  $('#toolbarRepoPath').textContent = R.path;
   setWindowTitle(`GitDesk — ${R.name} (${cb || s7(headSha())})`);
   $('#winTitle').textContent = `GitDesk — ${R.name} (${cb || s7(headSha())})`;
   const tr = cb ? tracking(cb) : null, inc = incomingList().length;
+  $('#toolbarTracking').innerHTML = `<span>${esc(cb && R.branches[cb]?.upstream || t('ui.noUpstream'))}</span><strong>↓ ${inc}</strong><strong>↑ ${tr?.ahead || 0}</strong>`;
+  $('#toolbarTracking').title = t('st.syncTip', { o: tr?.ahead || 0, i: inc });
   const pc = $('#pushCount'); pc.hidden = !(tr && tr.ahead); pc.textContent = tr ? String(tr.ahead) : '';
+  pc.parentElement?.classList.toggle('has-outgoing', !pc.hidden);
   const lc = $('#pullCount'); lc.hidden = !inc; lc.textContent = String(inc);
   $('#allBtn').setAttribute('aria-pressed', String(R.showAll)); $('#tagsBtn').setAttribute('aria-pressed', String(R.showTags));
 }
@@ -87,14 +94,14 @@ export function renderSidebar(){
   const match = (n: string) => !q || n.toLowerCase().includes(q);
   let h = '';
   const sec = (key: string, label: string, extra = '') => { const open = !R.secClosed.has(key); return `<div class="tsec-h${open ? ' open' : ''}"><button class="tog" data-sec="${key}" aria-expanded="${open}">${svg('chev', 'chev')}<span>${esc(label)}</span></button>${extra}</div>`; };
-  h += sec('br', t('sb.branchesTags'));
+  h += sec('br', t('ui.refs'));
   if (!R.secClosed.has('br')){
-    const cb = curBranch();
-    h += `<div class="trow" style="padding-left:12px" data-root>${svg('repo', 'cur')}<span class="lbl" style="font-weight:700">${esc(R.name)} (${esc(cb || s7(headSha()))})</span></div>`;
     const locals = Object.keys(R.branches).filter(match).sort();
+    h += `<button class="tree-group-label" data-root type="button"><span>${esc(t('ui.localBranches'))}</span><span>${locals.length}</span></button>`;
     h += tree(locals.map(n => ({ rel: n, full: n })), 1, 'local:', it => refRow(it.full, baseOf(it.rel), 'local', it.depth!), q);
     const rems = Object.keys(R.remotes).filter(match).sort();
     if (rems.length){
+      h += `<div class="tree-group-label"><span>${esc(t('ui.remoteBranches'))}</span><span>${rems.length}</span></div>`;
       const byRemote: Record<string, string[]> = {};
       rems.forEach(r => { const i = r.indexOf('/'); (byRemote[r.slice(0, i)] = byRemote[r.slice(0, i)] || []).push(r); });
       Object.keys(byRemote).sort().forEach(rem => {
@@ -106,9 +113,8 @@ export function renderSidebar(){
     }
     const tags = Object.keys(R.tags).filter(match).sort((a, b) => (R.commits[R.tags[b]]?.t || 0) - (R.commits[R.tags[a]]?.t || 0));
     if (tags.length){
-      const open = !!q || R.openFolders.has('tags');
-      h += folderRow(t('sb.tags'), 'tags', 1, open, false);
-      if (open) tags.forEach(n => { h += refRow(n, n, 'tag', 2); });
+      h += `<div class="tree-group-label"><span>${esc(t('sb.tags'))}</span><span>${tags.length}</span></div>`;
+      tags.forEach(n => { h += refRow(n, n, 'tag', 1); });
     }
     if (q && !locals.length && !rems.length && !tags.length) h += `<div class="tempty">${esc(t('sb.noMatch', { q }))}</div>`;
   }
@@ -255,9 +261,8 @@ export function renderGraph(){
   const outSet = followingHead ? outgoingSet() : new Set<string>();
   if (followingHead && cb){
     const inc = incomingList();
-    sh += `<div class="gsec${R.incOpen ? ' open' : ''}"><button class="tog" data-inc aria-expanded="${R.incOpen}">${svg('chev', 'chev')}<span>${esc(t('gr.incoming', { n: inc.length }))}</span></button><span class="sp"></span><button class="link sync-op" data-act="fetch">Fetch</button><span class="sep-dot">|</span><button class="link sync-op" data-act="pull">Pull</button></div>`;
+    sh += `<div class="gsec graph-summary${R.incOpen ? ' open' : ''}"><button class="tog" data-inc aria-expanded="${R.incOpen}">${svg('chev', 'chev')}<span>${esc(t('gr.incoming', { n: inc.length }))}</span></button><span class="sep-dot">·</span><strong>${esc(t('gr.localHistory', { n: outSet.size }))}</strong></div>`;
     if (R.incOpen) sh += inc.length ? `<div class="inc-list">${inc.map(c => rowHtml(c, '', undefined, false, R.selected === c.sha)).join('')}</div>` : `<div class="inc-empty">${esc(t('gr.noIncoming'))}</div>`;
-    sh += `<div class="gsec"><strong>${esc(t('gr.localHistory', { n: outSet.size }))}</strong><span class="sp"></span><button class="link sync-op" data-act="push">Push</button><span class="sep-dot">|</span><button class="link sync-op" data-act="sync">Sync</button></div>`;
   } else sh += `<div class="gsec"><strong>${esc(t('gr.history'))}</strong></div>`;
   $('#syncSections').innerHTML = sh;
 
@@ -326,11 +331,14 @@ export function fileRowHtml(f: { st: string; path: string; from?: string | null 
 export function renderDock(){
   if (!hasRepo()) return;
   const cb = curBranch();
-  $('#dockTitle').textContent = t('dk.title', { r: R.name });
+  $('#dockTitle').textContent = t('ui.changes');
+  $('#dockFileCount').textContent = String(R.work.length);
+  $('#dockBranchName').textContent = cb || t('dk.detached', { sha: s7(headSha()) });
+  $('#dockContextText').textContent = t('ui.changeSummary', { n: R.work.length });
   $('#branchSelectLabel').textContent = cb || t('dk.detached', { sha: s7(headSha()) });
   const tr = cb ? tracking(cb) : null;
   const o = cb ? outgoingSet().size : 0, i = tr ? tr.behind : 0;
-  $('#dockCounts').innerHTML = `${svg('updown')}<span>${o} / ${i}</span>`;
+  $('#dockCounts').innerHTML = `${svg('updown')}<span>↑ ${o} &nbsp; ↓ ${i}</span>`;
   $('#dockCounts').title = t('dk.counts', { o, i });
   let nh = '';
   if (R.inProgress){
@@ -350,10 +358,8 @@ export function renderDock(){
   $('#hashBtn').hidden = !linkable;
   if (linkable) h += sec('rel', t('dk.related'), R.related.length || null);
   if (linkable && !R.dockClosed.has('rel')) h += R.related.length ? R.related.map(id => `<div class="relrow"><span class="id">#${id}</span><span class="lbl">${esc(R.issues?.find(x => x.number === id)?.title || '')}</span><button class="icon-btn" data-unrel="${id}" title="${esc(t('dk.removeLink'))}">${svg('x')}</button></div>`).join('') : `<div class="cempty">${esc(t('dk.noRelated'))}</div>`;
-  if (staged.length){
-    h += sec('staged', t('dk.staged'), staged.length, `<button class="icon-btn" data-dtool="unstageAll" title="${esc(t('dk.unstageAll'))}">${svg('minus')}</button>`);
-    if (!R.dockClosed.has('staged')) h += staged.map(f => fileRowHtml(f, 'staged')).join('');
-  }
+  h += sec('staged', t('dk.staged'), staged.length, `<button class="icon-btn" data-dtool="unstageAll" title="${esc(t('dk.unstageAll'))}" ${staged.length ? '' : 'disabled'}>${svg('minus')}</button>`);
+  if (!R.dockClosed.has('staged')) h += staged.length ? staged.map(f => fileRowHtml(f, 'staged')).join('') : `<div class="cempty">${esc(t('ui.noStaged'))}</div>`;
   h += sec('changes', t('dk.changes'), unstaged.length, `<button class="icon-btn" data-dtool="discardAll" title="${esc(t('dk.discardAll'))}" ${unstaged.length ? '' : 'disabled'}>${svg('undo')}</button><button class="icon-btn" data-dtool="stageAll" title="${esc(t('dk.stageAll'))}" ${unstaged.length ? '' : 'disabled'}>${svg('plus')}</button>`);
   if (!R.dockClosed.has('changes')) h += unstaged.length ? unstaged.map(f => fileRowHtml(f, 'work')).join('') : `<div class="cempty">${esc(t('dk.noChanges'))}${isDemo() ? `<br><button class="link" data-dtool="simEdit">${esc(t('dk.simEdit'))}</button>` : ''}</div>`;
   h += sec('stash', t('dk.stashes'), R.stashes.length || null);
@@ -368,7 +374,7 @@ export function renderStatus(){
   if (!hasRepo()) return;
   const cb = curBranch(), tr = cb ? tracking(cb) : null;
   const o = cb ? outgoingSet().size : 0, i = tr ? tr.behind : 0;
-  $('#sbSync').innerHTML = `${svg('updown')}<span>${o} / ${i}</span>`; $('#sbSync').title = t('st.syncTip', { o, i });
+  $('#sbSync').innerHTML = `${svg('updown')}<span>↑ ${o} &nbsp; ↓ ${i}</span>`; $('#sbSync').title = t('st.syncTip', { o, i });
   $('#sbChanges').innerHTML = `${svg('pencil')}<span>${R.work.length}</span>`; $('#sbChanges').title = t('st.changes', { n: R.work.length });
   $('#sbBranch').innerHTML = `${svg('branch')}<span>${esc(cb || s7(headSha()))}</span>`; $('#sbBranch').title = t('st.branchTip');
   $('#sbRepo').innerHTML = `${svg('repo')}<span>${esc(R.name)}</span>`; $('#sbRepo').title = R.path;
