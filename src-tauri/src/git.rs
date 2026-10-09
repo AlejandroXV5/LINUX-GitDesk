@@ -770,10 +770,14 @@ impl Repo {
 
     pub fn create_branch(&mut self, name: &str, from: &str, checkout: bool) -> OpResult {
         if let Some(r) = self.reject_options(&[name, from]) { return r; }
+        // Based on a remote branch → track it explicitly, so push goes to that branch even when
+        // the local name differs (and regardless of the user's branch.autoSetupMerge setting).
+        let remote = self.raw(&["rev-parse", "-q", "--verify", &format!("refs/remotes/{from}")]).ok();
+        let track = if remote { "--track" } else { "--no-track" };
         let o = if checkout {
-            self.run(&["switch", "-c", name, "--end-of-options", from])
+            self.run(&["switch", "-c", name, track, "--end-of-options", from])
         } else {
-            self.run(&["branch", "--no-track", "--end-of-options", name, from])
+            self.run(&["branch", track, "--end-of-options", name, from])
         };
         if !o.ok() { return self.fail(&o); }
         self.finish(true, Some(notice("ok", "n.branchCreated", &[("b", name)], &["push"])))
@@ -1236,6 +1240,30 @@ mod tests {
         assert!(p.ok, "{:?}", p.log);
         assert_eq!(p.notice.unwrap().key, "n.pushed");
         assert_eq!(r.snapshot().branches["main"].ahead, Some(0));
+    }
+
+    #[test]
+    fn branch_from_remote_with_another_name_pushes_to_that_remote_branch() {
+        let (_t, origin, work) = setup();
+        sh(&work, &["push", "origin", "main:feature"]);
+        sh(&work, &["fetch"]);
+        // the user's config must not matter
+        sh(&work, &["config", "branch.autoSetupMerge", "simple"]);
+        let mut r = Repo::open(work.to_str().unwrap()).unwrap();
+        for (name, co) in [("mine", true), ("mine2", false)] {
+            assert!(r.create_branch(name, "origin/feature", co).ok);
+            assert_eq!(r.snapshot().branches[name].upstream.as_deref(), Some("origin/feature"));
+        }
+        fs::write(work.join("a.txt"), "two\n").unwrap();
+        assert!(r.commit(CommitOptions { message: "on mine".into(), amend: false, all: true }).ok);
+        let p = r.push(None);
+        assert!(p.ok, "{:?}", p.log);
+        let heads = git_command(&origin).args(["for-each-ref", "--format=%(refname:short)", "refs/heads"]).output().unwrap();
+        let heads = String::from_utf8_lossy(&heads.stdout);
+        assert!(!heads.lines().any(|l| l == "mine"), "{heads}");
+        // local branches based on local branches stay untracked
+        assert!(r.create_branch("loc", "main", false).ok);
+        assert_eq!(r.snapshot().branches["loc"].upstream, None);
     }
 
     #[test]

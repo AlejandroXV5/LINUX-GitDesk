@@ -272,8 +272,9 @@ export const MockBackend: GitBackend = {
   }),
   createBranch: (path, name, from, co) => op(path, () => {
     if (M.branches[name]){ log(`git branch ${name} ${from}`, [`fatal: a branch named '${name}' already exists`], true); notice('error', 'n.gitError', { msg: `a branch named '${name}' already exists` }); return false; }
-    M.branches[name] = { tip: resolve(from)!, upstream: null };
-    log(co ? `git switch -c ${name} ${from}` : `git branch --no-track ${name} ${from}`);
+    const track = M.remotes[from] ? '--track' : '--no-track';
+    M.branches[name] = { tip: resolve(from)!, upstream: M.remotes[from] ? from : null };
+    log(co ? `git switch -c ${name} ${track} ${from}` : `git branch ${track} ${name} ${from}`);
     if (co) M.head = { branch: name };
     notice('ok', 'n.branchCreated', { b: name }, ['push']);
   }),
