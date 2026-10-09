@@ -20,9 +20,9 @@ export const TauriBackend: GitBackend = {
   diff: (path, file, ctx, untracked) => invoke<string>('diff', { path, file, ctx, untracked }),
 
   fetch: (path, prune) => op('git_fetch', { path, prune }),
-  pull: path => op('git_pull', { path }),
+  pull: (path, prune) => op('git_pull', { path, prune }),
   push: (path, branch) => op('git_push', { path, branch: branch ?? null }),
-  sync: path => op('git_sync', { path }),
+  sync: (path, prune) => op('git_sync', { path, prune }),
   commit: (path, opts) => op('git_commit', { path, opts }),
   stage: (path, files) => op('git_stage', { path, files }),
   unstage: (path, files) => op('git_unstage', { path, files }),

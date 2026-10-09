@@ -26,6 +26,8 @@ function appendLog(d: DialogApi, line: string){
 }
 
 async function beginUpdate(d: DialogApi){
+  // Closing mid-install would hide the progress and the outcome while it keeps running.
+  d.setLocked(true);
   d.$$('.dlg-foot .btn').forEach(b => ((b as HTMLButtonElement).disabled = true));
   d.$<HTMLElement>('#updStatus').textContent = t('upd.updating');
   const foot = d.el.querySelector('.dlg-foot')!;
@@ -39,6 +41,8 @@ async function beginUpdate(d: DialogApi){
     appendLog(d, errText(e));
     foot.innerHTML = `<button class="btn btn-primary" id="updClose">${esc(t('dl.close'))}</button>`;
     d.$('#updClose').addEventListener('click', d.close);
+  } finally {
+    d.setLocked(false);
   }
 }
 

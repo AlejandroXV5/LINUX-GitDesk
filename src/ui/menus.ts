@@ -219,6 +219,15 @@ export function issuePicker(anchor: HTMLElement, fromTyping: boolean){
     return R.issues.map(i => `<button class="mi" data-issue="${i.number}"><span class="mi-ic issue">#${i.number}</span><span class="mi-label">${esc(i.title)}</span>${R.related.includes(i.number) ? `<span class="mi-sc">${svg('check')}</span>` : ''}</button>`).join('');
   };
   const el = popoverAt(anchor, `<div class="menu-h" style="padding-top:8px">${esc(t('dk.issues'))}</div><div class="pop-list">${body()}</div>`);
+  if (fromTyping){
+    const ta = $('#commitMsg') as HTMLTextAreaElement;
+    const onInput = () => {
+      if (el.isConnected && /#\d*$/.test(ta.value.slice(0, ta.selectionStart))) return;
+      ta.removeEventListener('input', onInput);
+      if (el.isConnected) closeMenus();
+    };
+    ta.addEventListener('input', onInput);
+  }
   const focusFirst = () => { if (!fromTyping) (el.querySelector('.mi') as HTMLElement | null)?.focus(); };
   focusFirst();
   // Refresh in the background; redraw the list if it changed while the picker is open.
@@ -233,7 +242,7 @@ export function issuePicker(anchor: HTMLElement, fromTyping: boolean){
     const id = +b.dataset.issue!, ta = $('#commitMsg') as HTMLTextAreaElement;
     closeMenus();
     let v = ta.value;
-    if (fromTyping && v.endsWith('#')) v = v.slice(0, -1);
+    if (fromTyping) v = v.replace(/#\d*$/, '');
     if (!v.includes('#' + id)) v = (v && !/\s$/.test(v) ? v + ' ' : v) + '#' + id;
     ta.value = v; R.msg = v;
     if (!R.related.includes(id)) R.related.push(id);

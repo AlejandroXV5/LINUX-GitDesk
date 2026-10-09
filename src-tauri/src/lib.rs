@@ -73,8 +73,8 @@ async fn git_fetch(path: String, prune: bool) -> R<OpResult> {
 }
 
 #[tauri::command]
-async fn git_pull(path: String) -> R<OpResult> {
-    Ok(repo(&path)?.pull())
+async fn git_pull(path: String, prune: bool) -> R<OpResult> {
+    Ok(repo(&path)?.pull(prune))
 }
 
 #[tauri::command]
@@ -83,8 +83,8 @@ async fn git_push(path: String, branch: Option<String>) -> R<OpResult> {
 }
 
 #[tauri::command]
-async fn git_sync(path: String) -> R<OpResult> {
-    Ok(repo(&path)?.sync())
+async fn git_sync(path: String, prune: bool) -> R<OpResult> {
+    Ok(repo(&path)?.sync(prune))
 }
 
 #[tauri::command]

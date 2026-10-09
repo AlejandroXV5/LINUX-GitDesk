@@ -168,9 +168,9 @@ function integrate(b: string, theirs: string, name: string){
   M.branches[b].tip = add(`Merge ${name.startsWith('origin/') ? `remote-tracking branch '${name}'` : `branch '${name}'`} into ${b}`, USER(), [ours, theirs], []);
   return { kind: 'merge', n };
 }
-function pull(): boolean {
+function pull(prune: boolean): boolean {
   const b = cur(); if (!b){ notice('warn', 'n.detached'); return false; }
-  fetchAll(true, true);
+  fetchAll(prune, true);
   const up = M.branches[b].upstream;
   if (!up || !M.remotes[up]){ notice('info', 'n.noUpstream', { b }, ['push']); return true; }
   const before = M.branches[b].tip, r = integrate(b, M.remotes[up], up);
@@ -231,10 +231,10 @@ export const MockBackend: GitBackend = {
   async diff(_path, file, _ctx, untracked){ return fakeDiff(file, untracked ? 'A' : statusOf(file)); },
 
   fetch: (path, prune) => op(path, () => fetchAll(prune)),
-  pull: path => op(path, pull),
+  pull: (path, prune) => op(path, () => pull(prune)),
   push: (path, branch) => op(path, () => push(branch)),
-  sync: path => op(path, () => {
-    if (!pull()) return false;
+  sync: (path, prune) => op(path, () => {
+    if (!pull(prune)) return false;
     if (!push()) return false;
     notice('ok', 'n.synced', { u: M.branches[cur()!].upstream || '' });
   }),

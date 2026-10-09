@@ -21,9 +21,9 @@ export interface GitBackend {
   diff(path: string, file: string, ctx: string, untracked: boolean): Promise<string>;
 
   fetch(path: string, prune: boolean): Promise<OpResult>;
-  pull(path: string): Promise<OpResult>;
+  pull(path: string, prune: boolean): Promise<OpResult>;
   push(path: string, branch?: string | null): Promise<OpResult>;
-  sync(path: string): Promise<OpResult>;
+  sync(path: string, prune: boolean): Promise<OpResult>;
   commit(path: string, opts: { message: string; amend: boolean; all: boolean }): Promise<OpResult>;
   stage(path: string, files: string[]): Promise<OpResult>;
   unstage(path: string, files: string[]): Promise<OpResult>;

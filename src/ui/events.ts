@@ -6,7 +6,7 @@ import { $, $$ } from '../core/util';
 import { accountMenu, signIn } from './account';
 import { act, winClose } from './actions';
 import { OUT, appLog, busy, closeMenus, copyText, isNarrow, menuAnchor, menuAt, menuKeys, runNoticeAction, showMenu } from './core';
-import { dlgClone, dlgDelete, dlgNewPR, dlgNewRepo, dlgOpenRepo, dlgOptions, dlgPR, dlgStash, dlgSubmodule } from './dialogs';
+import { dlgClone, dlgDelete, dlgDropStash, dlgNewPR, dlgNewRepo, dlgOpenRepo, dlgOptions, dlgPR, dlgStash, dlgSubmodule } from './dialogs';
 import { currentDiff, openInlineDiff, showHistory, showSelectedDiff } from './inline-diff';
 import { branchPicker, commitMenu, commitMoreMenu, dockMoreMenu, fileAct, fileMenu, issuePicker, mainMenu, refMenu, repoMenuItems, syncMenu, viewRefMenu } from './menus';
 import { filesFor, outChannel, renderAll, renderChrome, renderDetail, renderDock, renderGraph, renderLayout, renderOutput, renderSidebar } from './render';
@@ -176,7 +176,7 @@ export function wire(){
     const fa = closest(e, '[data-fact]');
     if (fa){ const { path, staged } = rowFile(fa); const a = fa.dataset.fact!; if (a === 'diff'){ const f = R.work.find(x => x.path === path && x.staged === staged); if (f) openFileDiff(f, staged ? 'staged' : 'work'); } else fileAct(a as 'stage' | 'unstage' | 'discard', path); return; }
     const sa = closest(e, '[data-sact]');
-    if (sa){ const id = sa.closest<HTMLElement>('[data-stash]')!.dataset.stash!; const a = sa.dataset.sact; doOp('st.working', () => a === 'drop' ? B().stashDrop(P(), id) : B().stashApply(P(), id, a === 'pop')); return; }
+    if (sa){ const id = sa.closest<HTMLElement>('[data-stash]')!.dataset.stash!; const a = sa.dataset.sact; if (a === 'drop') dlgDropStash(id); else doOp('st.working', () => B().stashApply(P(), id, a === 'pop')); return; }
     const st = closest(e, '[data-stash]'); if (st){ dlgStash(st.dataset.stash!); return; }
     const fr = closest(e, '.frow[data-path]');
     if (fr){ const { path, staged } = rowFile(fr); const f = R.work.find(x => x.path === path && x.staged === staged); if (f) openFileDiff(f, staged ? 'staged' : 'work'); }
@@ -193,7 +193,7 @@ export function wire(){
         { label: t('dk.apply'), icon: 'check', action: () => doOp('st.working', () => B().stashApply(P(), id, false)) },
         { label: t('dk.pop'), icon: 'up', action: () => doOp('st.working', () => B().stashApply(P(), id, true)) },
         { divider: true },
-        { label: t('dk.drop'), icon: 'trash', action: () => doOp('st.working', () => B().stashDrop(P(), id)) }
+        { label: t('dk.drop'), icon: 'trash', action: () => dlgDropStash(id) }
       ], me.clientX, me.clientY);
     }
   });
@@ -206,6 +206,14 @@ export function wire(){
 
   // mobile drawers
   $('#backdrop').addEventListener('click', () => { $('#app').classList.remove('drawer-sidebar', 'drawer-dock'); renderLayout(); });
+
+  // The WebView's own menu (Back/Reload/Inspect) would stack on ours; keep it only for text fields and selected text.
+  document.addEventListener('contextmenu', e => {
+    const el = e.target as HTMLElement;
+    if (el.closest('.menu, .popover')) { e.preventDefault(); return; }
+    if (el.closest('input, textarea, [contenteditable]') || window.getSelection()?.toString()) return;
+    e.preventDefault();
+  });
 
   // keyboard
   document.addEventListener('keydown', e => {
@@ -225,7 +233,8 @@ export function wire(){
   });
 
   // keep in sync with changes made outside GitDesk (editor, terminal)
-  window.addEventListener('focus', () => { if (hasRepo() && !busy) refresh(); });
+  window.addEventListener('blur', closeMenus);
+  window.addEventListener('focus', () => { if (hasRepo() && !busy && !$('.menu, .popover, .dlg-backdrop')) refresh(); });
   setInterval(() => { if (hasRepo() && !busy && !document.hidden && !$('.menu, .popover, .dlg-backdrop')) refresh(); }, 10000);
 
   // panel widths — restore the last drag, then let the user drag again

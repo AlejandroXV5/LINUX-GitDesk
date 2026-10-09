@@ -581,7 +581,7 @@ impl Repo {
         o.stdout.trim().parse().unwrap_or(0)
     }
 
-    pub fn pull(&mut self) -> OpResult {
+    pub fn pull(&mut self, prune: bool) -> OpResult {
         let Some(b) = self.current_branch() else {
             return self.finish(false, Some(notice("warn", "n.detached", &[], &[])));
         };
@@ -589,7 +589,11 @@ impl Repo {
             return self.finish(true, Some(notice("info", "n.noUpstream", &[("b", &b)], &["push"])));
         };
         let n = {
-            let _ = self.raw(&["fetch", "--quiet"]);
+            let mut args = vec!["fetch", "--quiet"];
+            if prune {
+                args.push("--prune");
+            }
+            let _ = self.raw(&args);
             self.incoming_count()
         };
         let o = self.run(&["pull", "--no-rebase", "--no-edit"]);
@@ -649,8 +653,8 @@ impl Repo {
         self.fail(o)
     }
 
-    pub fn sync(&mut self) -> OpResult {
-        let mut pulled = self.pull();
+    pub fn sync(&mut self, prune: bool) -> OpResult {
+        let mut pulled = self.pull(prune);
         if !pulled.ok {
             return pulled;
         }
@@ -1267,6 +1271,21 @@ mod tests {
     }
 
     #[test]
+    fn pull_prunes_branches_deleted_on_origin() {
+        let (_t, origin, work) = setup();
+        sh(&work, &["push", "origin", "main:gone"]);
+        sh(&work, &["fetch"]);
+        // deleted on GitHub
+        sh(&origin, &["branch", "-D", "gone"]);
+        let mut r = Repo::open(work.to_str().unwrap()).unwrap();
+        assert!(r.snapshot().remotes.contains_key("origin/gone"));
+        assert!(r.pull(false).ok);
+        assert!(r.snapshot().remotes.contains_key("origin/gone"));
+        assert!(r.pull(true).ok);
+        assert!(!r.snapshot().remotes.contains_key("origin/gone"));
+    }
+
+    #[test]
     fn rejected_push_then_sync() {
         let (tmp, origin, work) = setup();
         // a teammate pushes first
@@ -1287,7 +1306,7 @@ mod tests {
         assert_eq!(p.notice.unwrap().key, "n.pushRejected");
         let f = r.fetch(true);
         assert_eq!(f.notice.unwrap().vars["n"], "1");
-        let s = r.sync();
+        let s = r.sync(true);
         assert!(s.ok, "{:?}", s.log);
         let snap = r.snapshot();
         assert_eq!(snap.branches["main"].ahead, Some(0));

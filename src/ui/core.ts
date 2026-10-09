@@ -9,6 +9,10 @@ let toastTimer: number | undefined;
 export interface Action { label: string; fn: () => void }
 export function toast(msg: string, action?: Action | null){
   const el = $('#toast');
+  // Over an open dialog: message only, at the top, so it can't cover or take clicks for the dialog's buttons.
+  const overDlg = !!$('.dlg-backdrop');
+  if (overDlg) action = null;
+  el.classList.toggle('over-dlg', overDlg);
   el.innerHTML = `<span>${esc(msg)}</span>` + (action ? `<button class="link">${esc(action.label)}</button>` : '');
   if (action) (el.querySelector('button') as HTMLButtonElement).onclick = () => { el.classList.remove('show'); action.fn(); };
   el.classList.add('show');
@@ -67,7 +71,8 @@ export function place(el: HTMLElement, x: number, y: number, alignRight = false)
   let vx = alignRight ? x - wd : x;
   vx = Math.max(8, Math.min(vx, window.innerWidth - wd - 8));
   let vy = y;
-  if (vy + ht > window.innerHeight - 8) vy = Math.max(8, window.innerHeight - ht - 8);
+  if (vy + ht > window.innerHeight - 8) vy = window.innerHeight - ht - 8;
+  vy = Math.max(8, vy);
   el.style.left = vx + 'px'; el.style.top = vy + 'px';
 }
 function buildMenu(items: (MenuItem | null | false)[]): MenuEl {
@@ -81,7 +86,7 @@ function buildMenu(items: (MenuItem | null | false)[]): MenuEl {
     b.type = 'button'; b.className = 'mi'; b.setAttribute('role', 'menuitem'); b.disabled = !!it.disabled;
     b.innerHTML = `<span class="mi-ic">${it.checked ? svg('check') : it.icon ? svg(it.icon) : ''}</span><span class="mi-label">${esc(it.label)}</span>` +
       (it.shortcut ? `<span class="mi-sc">${esc(it.shortcut)}</span>` : '') + (it.submenu ? '<span class="mi-sc">▸</span>' : '');
-    if (it.submenu){
+    if (it.submenu && !it.disabled){
       const open = () => openSub(b, el, it.submenu!);
       b.addEventListener('mouseenter', open);
       b.addEventListener('click', e => { e.stopPropagation(); open(); (el._sub?.querySelector('.mi:not(:disabled)') as HTMLElement | null)?.focus(); });
@@ -99,9 +104,11 @@ function openSub(btn: HTMLElement, parent: MenuEl, items: MenuItem[]){
   closeSub(parent);
   const sub = buildMenu(items); sub._from = btn; sub._parent = parent;
   document.body.appendChild(sub); parent._sub = sub; btn.classList.add('sub-open');
-  const r = btn.getBoundingClientRect();
-  place(sub, r.right - 2, r.top - 4);
-  if (sub.getBoundingClientRect().left < r.right - 10) place(sub, r.left - sub.offsetWidth + 2, r.top - 4);
+  const r = btn.getBoundingClientRect(), wd = sub.offsetWidth;
+  if (r.right - 2 + wd <= window.innerWidth - 8) place(sub, r.right - 2, r.top - 4);
+  else if (r.left + 2 - wd >= 8) place(sub, r.left + 2 - wd, r.top - 4);
+  // No room on either side: drop it just below the item, so the pointer reaches it without crossing sibling items.
+  else place(sub, r.left + 24, r.bottom);
 }
 export function closeSub(menu: MenuEl){
   if (menu._sub){ closeSub(menu._sub); menu._sub._from?.classList.remove('sub-open'); menu._sub.remove(); menu._sub = null; }
@@ -135,6 +142,8 @@ export function menuKeys(e: KeyboardEvent): boolean {
   const open = $('.menu, .popover');
   if (!open) return false;
   if (e.key === 'Escape'){ e.preventDefault(); closeMenus(); return true; }
+  const a = document.activeElement as HTMLElement | null;
+  if (a && /INPUT|TEXTAREA/.test(a.tagName) && !a.closest('.menu, .popover')) return false;
   if (!['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft'].includes(e.key)) return false;
   const menus = $$<MenuEl>('.menu'); const m = menus[menus.length - 1] || open;
   const items = $$<HTMLButtonElement>('.mi:not(:disabled)', m);
@@ -153,14 +162,23 @@ export function menuKeys(e: KeyboardEvent): boolean {
 
 // ---------- dialogs ----------
 export interface DialogAction { label: string; primary?: boolean; danger?: boolean; fn?: (d: DialogApi) => unknown; el?: HTMLButtonElement }
-export interface DialogApi { el: HTMLElement; $: <T extends Element = HTMLInputElement>(s: string) => T; $$: (s: string) => HTMLElement[]; close: () => void }
+export interface DialogApi {
+  el: HTMLElement; $: <T extends Element = HTMLInputElement>(s: string) => T; $$: (s: string) => HTMLElement[]; close: () => void;
+  /** While locked, Escape, the X and clicking outside don't close it (the code can still call close()). */
+  setLocked: (on: boolean) => void;
+}
 export function dialog(o: { title: string; body: string; actions?: DialogAction[]; wide?: boolean; onMount?: (d: DialogApi) => void }): DialogApi {
   closeMenus();
+  // A toast offering an action (Pull, Update…) would sit over the dialog; drop it.
+  if ($('#toast .link')) $('#toast').classList.remove('show');
   const bd = document.createElement('div');
   bd.className = 'dlg-backdrop';
   bd.innerHTML = `<div class="dlg${o.wide ? ' wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="dlgT"><div class="dlg-head"><h2 id="dlgT">${esc(o.title)}</h2><button class="icon-btn dlg-x" aria-label="${esc(t('dl.close'))}">${svg('x')}</button></div><div class="dlg-body">${o.body}</div><div class="dlg-foot"></div></div>`;
   const prev = document.activeElement as HTMLElement | null;
-  const api: DialogApi = { el: bd, $: <T extends Element>(s: string) => bd.querySelector(s) as T, $$: s => $$(s, bd), close };
+  let locked = false;
+  const setLocked = (on: boolean) => { locked = on; bd.querySelector<HTMLElement>('.dlg-x')!.hidden = on; };
+  const dismiss = () => { if (!locked) close(); };
+  const api: DialogApi = { el: bd, $: <T extends Element>(s: string) => bd.querySelector(s) as T, $$: s => $$(s, bd), close, setLocked };
   const foot = bd.querySelector('.dlg-foot')!;
   const actions = o.actions || [];
   actions.forEach(a => {
@@ -171,15 +189,17 @@ export function dialog(o: { title: string; body: string; actions?: DialogAction[
     foot.appendChild(b);
   });
   function onKey(e: KeyboardEvent){
-    if (e.key === 'Escape'){ e.stopPropagation(); e.preventDefault(); close(); }
+    // Stacked dialogs each listen on document; only the topmost one may react.
+    if (bd !== $$('.dlg-backdrop').pop()) return;
+    if (e.key === 'Escape'){ e.stopPropagation(); e.preventDefault(); dismiss(); }
     else if (e.key === 'Enter' && !e.shiftKey && !/TEXTAREA|BUTTON|SELECT/.test((e.target as HTMLElement).tagName)){
       const p = actions.find(a => a.primary); if (p && p.el && !p.el.disabled){ e.preventDefault(); p.el.click(); }
     }
   }
   function close(){ bd.remove(); document.removeEventListener('keydown', onKey, true); prev?.focus?.(); }
   document.addEventListener('keydown', onKey, true);
-  bd.addEventListener('mousedown', e => { if (e.target === bd) close(); });
-  bd.querySelector('.dlg-x')!.addEventListener('click', close);
+  bd.addEventListener('mousedown', e => { if (e.target === bd) dismiss(); });
+  bd.querySelector('.dlg-x')!.addEventListener('click', dismiss);
   document.body.appendChild(bd);
   o.onMount?.(api);
   const first = bd.querySelector<HTMLElement>('.dlg-body input:not([type=checkbox]), .dlg-body select, .dlg-body textarea') || bd.querySelector<HTMLElement>('.btn-primary');

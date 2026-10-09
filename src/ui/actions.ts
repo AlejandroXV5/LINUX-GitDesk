@@ -15,10 +15,10 @@ const w = (n: number) => t(n === 1 ? 'w.change' : 'w.changes');
 
 export const act = {
   fetch: () => doOp('st.fetching', () => B().fetch(P(), S.prune)),
-  pull: () => doOp('st.pulling', () => B().pull(P())),
+  pull: () => doOp('st.pulling', () => B().pull(P(), S.prune)),
   push: () => doOp('st.pushing', () => B().push(P())),
   pushBranch: (b: string) => doOp('st.pushing', () => B().push(P(), b)),
-  sync: () => doOp('st.syncing', () => B().sync(P())),
+  sync: () => doOp('st.syncing', () => B().sync(P(), S.prune)),
 
   commit(mode?: 'push' | 'sync'){
     if (busy || !hasRepo()) return;
@@ -31,7 +31,7 @@ export const act = {
       ta().value = ''; R.msg = ''; R.related = []; amendCb().checked = false;
       R.selected = headSha();
       if (mode === 'push' || (!mode && S.pushAfterCommit)){ applyResult(await B().push(P())); await refresh(); }
-      else if (mode === 'sync'){ applyResult(await B().sync(P())); await refresh(); }
+      else if (mode === 'sync'){ applyResult(await B().sync(P(), S.prune)); await refresh(); }
     });
   },
   stash: () => doOp('st.working', () => B().stashPush(P())),

@@ -6,10 +6,10 @@ Todas las llamadas incluyen `-c color.ui=false -c core.quotepath=false` y el ent
 |---|---|
 | Abrir / refrescar | `rev-parse --show-toplevel`, `for-each-ref refs/heads refs/remotes refs/tags`, `log --topo-order --branches --remotes --tags HEAD -n2000`, `status --porcelain=v1 -z --untracked-files=all`, `stash list`, `worktree list --porcelain` |
 | Fetch | `fetch --all [--prune]` |
-| Pull | `pull --no-rebase --no-edit` |
+| Pull | `fetch --quiet [--prune]`, `pull --no-rebase --no-edit` |
 | Push (rama con upstream) | `push <remoto> <rama>:<destino>` |
 | Push (rama nueva) | `push --set-upstream <remoto> <rama>` |
-| Sync | `fetch`, `pull --no-rebase --no-edit`, `push` |
+| Sync | `fetch --quiet [--prune]`, `pull --no-rebase --no-edit`, `push` |
 | Commit Staged / Commit All | `commit -m <msg>` (Commit All hace antes `add --all`) |
 | Amend | `commit --amend -m <msg>` |
 | Stage / Unstage | `add -- <archivos>` / `restore --staged -- <archivos>` (`rm --cached` si aún no hay commits) |
@@ -18,7 +18,7 @@ Todas las llamadas incluyen `-c color.ui=false -c core.quotepath=false` y el ent
 | Checkout rama local | `switch <rama>` |
 | Checkout rama remota | `switch --track origin/<rama>` (o `switch <rama>` si ya existe) |
 | Checkout commit / tag | `switch --detach <ref>` |
-| Nueva rama | `switch -c <nombre> <desde>` o `branch --no-track <nombre> <desde>` |
+| Nueva rama | `switch -c <nombre> --track <desde>` o `branch --track <nombre> <desde>` (`--no-track` si `<desde>` no es una rama remota) |
 | Eliminar rama local / remota / tag | `branch -d` (`-D` forzado) / `push <remoto> --delete <rama>` / `tag -d` |
 | Merge into current | `merge --no-edit <ref>` |
 | Rebase onto | `rebase <ref>` |

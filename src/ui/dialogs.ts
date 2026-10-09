@@ -7,7 +7,7 @@ import { R, absDate, ancestors, curBranch, hasRepo, headSha, onlyIn, refKind, re
 import { S, saveSettings, t, w } from '../core/settings';
 import { $, $$, esc, firstLine, s7 } from '../core/util';
 import { account } from './account';
-import { appLog, busy, dialog, run, toast, type DialogApi } from './core';
+import { appLog, busy, confirmDlg, dialog, run, toast, type DialogApi } from './core';
 import { diffTableHtml, parseDiff } from './diff-format';
 import { fileRowHtml, renderAll, renderSidebar } from './render';
 import { B, DEMO, P, doOp, isDemo, loadPrs, openRepo } from './session';
@@ -285,13 +285,16 @@ export async function dlgDiff(f: FileChange | WorkFile, ctx: string){
   d.$<HTMLElement>('#dfD').textContent = '−' + rows.filter(r => r.k === 'del').length;
   box.innerHTML = diffTableHtml(rows);
 }
+export function dlgDropStash(id: string){
+  confirmDlg(t('dl.dropStash', { s: id }), esc(t('dl.dropStashBody')), t('dk.drop'), true, () => { doOp('st.working', () => B().stashDrop(P(), id)); });
+}
 export async function dlgStash(id: string){
   const s = R.stashes.find(x => x.id === id); if (!s) return;
   const d = dialog({
     title: s.id, wide: true,
     body: `<div class="hint">${esc(s.msg)} · ${esc(absDate(s.t))}</div><div id="stFiles"><div class="hint">${esc(t('st.loading'))}</div></div>`,
     actions: [
-      { label: t('dk.drop'), danger: true, fn: () => { doOp('st.working', () => B().stashDrop(P(), id)); } },
+      { label: t('dk.drop'), danger: true, fn: () => { dlgDropStash(id); } },
       { label: t('dk.apply'), fn: () => { doOp('st.working', () => B().stashApply(P(), id, false)); } },
       { label: t('dk.pop'), primary: true, fn: () => { doOp('st.working', () => B().stashApply(P(), id, true)); } }
     ]
@@ -361,7 +364,8 @@ export function setupAutoFetch(){
   clearInterval(autoTimer); autoTimer = undefined;
   if (S.autoFetch === 'off') return;
   autoTimer = window.setInterval(() => {
-    if (!hasRepo() || document.hidden || busy) return;
+    // Skip this tick while a menu or dialog is open: the refresh would redraw the UI under it.
+    if (!hasRepo() || document.hidden || busy || $('.menu, .popover, .dlg-backdrop')) return;
     // Under the busy flag so a user pull/push can't run git alongside this fetch.
     void run('st.fetching', async () => {
       const be = B();
